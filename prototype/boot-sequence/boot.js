@@ -248,12 +248,40 @@ async function run() {
     className: "fortune",
   });
   await line("");
-  await line("    type 'help' when you have a shell. (scroll is coming soon.)", {
+
+  // ── First prompt ────────────────────────────────────────────────────
+  emitPrompt();
+  await sleep(650);
+
+  // ── Auto-`help` ─────────────────────────────────────────────────────
+  await typeOut("help", { className: "user-input", minMs: 80, maxMs: 180 });
+  await sleep(220);
+  await line("");
+
+  const helpItems = [
+    ["whoami",       "about me"],
+    ["projects",     "what I've built"],
+    ["now",          "what I'm up to this season"],
+    ["writing",      "essays and technical pieces"],
+    ["cv",           "long-form résumé"],
+    ["mail",         "get in touch"],
+    ["theme <name>", "switch color scheme"],
+  ];
+  for (const [cmd, desc] of helpItems) {
+    emitHelpLine(cmd, desc);
+    await sleep(35);
+  }
+  await line("");
+  await line("  scroll to explore, or click any line to jump.", {
     className: "dim",
   });
   await line("");
 
-  // ── Prompt ──────────────────────────────────────────────────────────
+  // ── Idle prompt ─────────────────────────────────────────────────────
+  emitPrompt();
+}
+
+function emitPrompt() {
   const prompt = document.createElement("span");
   const host = document.createElement("span");
   host.className = "prompt-host";
@@ -265,6 +293,21 @@ async function run() {
   prompt.appendChild(path);
   prompt.appendChild(document.createTextNode("$ "));
   cursor.before(prompt);
+  scrollBottom();
+}
+
+function emitHelpLine(cmd, desc) {
+  const row = document.createElement("span");
+  const cmdSpan = document.createElement("span");
+  cmdSpan.className = "prompt-path";
+  cmdSpan.textContent = "  " + cmd.padEnd(18, " ");
+  const descSpan = document.createElement("span");
+  descSpan.className = "dim";
+  descSpan.textContent = desc;
+  row.appendChild(cmdSpan);
+  row.appendChild(descSpan);
+  row.appendChild(document.createTextNode("\n"));
+  cursor.before(row);
   scrollBottom();
 }
 

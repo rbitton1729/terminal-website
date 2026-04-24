@@ -70,20 +70,53 @@ It also lets me hide easter eggs in places a normal site can't: a `sudo` command
 
 ## 5. Interaction model
 
-Hybrid, as requested.
+Three tiers of engagement, layered so nobody is ever gated:
 
-- **Scroll is primary.** Everything is reachable by scrolling top to bottom on any device. No content is gated behind typing.
-- **Clickable commands.** Every rendered command in the terminal is a link. Clicking scrolls to the corresponding section and re-runs the type-out animation.
-- **Optional keyboard input.** A subtle affordance (cursor blink + small hint on hover: `type 'help'`) lets the user drop into an actual REPL. Supported commands:
-  - `help` — list commands
-  - `whoami`, `ls`, `cat`, `man`, `mail` — jump to sections
-  - `clear` — resets terminal to top
-  - `theme <name>` — switch color scheme (gruvbox, nord, solarized-dark, tokyo-night, matrix)
-  - `sudo <anything>` — "Permission denied. This incident will be reported." (easter egg)
-  - `uname -a` — prints real-looking output referencing the actual stack the site runs on
-  - `fortune` — random quote from a curated list (same pool that feeds the MOTD line at load)
-  - Anything else: `command not found: <x>. Try 'help'.`
-- **Mobile.** No keyboard affordance shown on touch devices. Tap-to-run for clickable commands. Scroll still drives everything.
+### 5.1 Spectators (scroll)
+
+Scrolling is primary. Everything on the site is reachable by scrolling top to bottom on any device. As the viewport crosses each section boundary, the terminal auto-types and runs the corresponding command, so the shape of the site teaches itself without any action required.
+
+### 5.2 Clickers (auto-help menu + clickable commands)
+
+Immediately after MOTD, the shell auto-types `help` and prints a human-labeled menu. The menu uses plain-English descriptions on the right so it reads as navigation to a non-terminal-native visitor, while still *looking* like a real `--help` output:
+
+```
+$ help
+  whoami              about me
+  projects            what I've built
+  now                 what I'm up to this season
+  writing             essays and technical pieces
+  cv                  long-form résumé
+  mail                get in touch
+  theme <name>        switch color scheme
+
+  scroll to explore, or click any line to jump.
+```
+
+Each line is a clickable link that jumps to the corresponding section and re-runs the command's type-out animation. The full Unix-y forms (`ls ~/projects/`, `man rbitton`, `cat ~/now.txt`) are what each scroll-section *does*, but they don't appear in `help` — the friendly names are enough for navigation.
+
+### 5.3 Typers (optional REPL)
+
+On desktop, the blinking cursor plus a hover hint (`type 'help' for more`) invites power users into an actual REPL. Supported:
+
+- `help` — the menu from §5.2
+- `whoami`, `projects`, `now`, `writing`, `cv`, `mail` — jump to sections. Unix-y aliases also accepted: `ls ~/projects/`, `man rbitton`, `cat ~/now.txt`.
+- `clear` — resets terminal to top
+- `theme <name>` — switch color scheme (gruvbox, nord, solarized-dark, tokyo-night, matrix)
+- `sudo <anything>` — "Permission denied. This incident will be reported." (easter egg)
+- `uname -a` — real-looking output referencing the actual stack the site runs on
+- `fortune` — random quote from a curated list (same pool that feeds the MOTD line at load)
+- Anything else: `command not found: <x>. Try 'help'.`
+
+The REPL is entirely opt-in. Scroll and click reach every piece of content without ever typing.
+
+### 5.4 Mobile
+
+No keyboard affordance is shown on touch devices. The auto-help menu still prints after MOTD, with tap-to-run on each line. Scroll drives everything.
+
+### 5.5 Plain version escape hatch
+
+The site serves a plain semantic HTML fallback for no-JS visitors and screen readers (§7.5, §8). To make that fallback accessible to *anyone* overwhelmed by the terminal theater, surface a visible link to it: one dim line, footer or top-right corner, copy like `"not into the terminal? → plain version"`. Points at `/plain/` (or `?plain=1`), which serves the same content as the no-JS render. No JS, no theater, no third-party calls. A one-to-one reader for the entire site, always reachable.
 
 ## 6. Design & aesthetic
 
