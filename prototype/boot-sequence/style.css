@@ -38,13 +38,16 @@ body {
 main {
   height: 100vh;
   height: 100dvh;
-  padding: 1.5rem clamp(1rem, 4vw, 3rem);
+  padding: 1.5rem clamp(1rem, 4vw, 3rem) 2.5rem;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
   /* Disable the browser's automatic scroll-anchoring so new content
      at the bottom of the pane actually triggers our auto-scroll. */
   overflow-anchor: none;
+  /* Keep a little clearance below the cursor when auto-scrolling so
+     the last line isn't kissing the bottom edge (or the keyboard). */
+  scroll-padding-bottom: 2rem;
 }
 main::-webkit-scrollbar {
   display: none;
@@ -133,6 +136,6 @@ main::-webkit-scrollbar {
 
 @media (max-width: 640px) {
   main {
-    padding: 1rem;
+    padding: 1rem 1rem 2rem;
   }
 }

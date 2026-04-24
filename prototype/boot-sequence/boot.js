@@ -172,13 +172,10 @@ function makeScreen(preEl) {
   const scrollHost = preEl.parentElement;
   function keepBottomVisible() {
     if (!scrollHost) return;
-    const doScroll = () => {
-      if (scrollHost.scrollHeight > scrollHost.clientHeight) {
-        scrollHost.scrollTop = scrollHost.scrollHeight;
-      }
-    };
-    // Immediate pass + one post-reflow pass to catch the freshly
-    // laid-out scrollHeight after the DOM mutation lands.
+    // scrollIntoView respects the host's scroll-padding-bottom, which
+    // is what gives us breathing room below the cursor. scrollTop =
+    // scrollHeight doesn't honor scroll-padding, so we use this.
+    const doScroll = () => cursor.scrollIntoView({ block: "end" });
     doScroll();
     requestAnimationFrame(doScroll);
   }
