@@ -405,10 +405,13 @@ async function runBoot(s) {
   for (const ln of banner) await line(ln, { gap: 25, className: "motd" });
   await line("");
   await line(
-    "    student, system orchestrator, occasional composer, explorer.",
+    "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.",
     { className: "motd" },
   );
   await line("    Founder & Lead Systems Engineer · Skylantix.", {
+    className: "dim",
+  });
+  await line("    Lead Systems Architect · addictd.ai.", {
     className: "dim",
   });
   await line("");
@@ -451,6 +454,9 @@ const OUTPUTS = {
     await streamLine("Founder & Lead Systems Engineer at Skylantix.", {
       className: "dim",
     });
+    await streamLine("Lead Systems Architect at addictd.ai.", {
+      className: "dim",
+    });
     await line("");
     await streamLine("UChicago President's Scholar. Obsessed with Linux and self-hosting;");
     await streamLine("ditched Apple and Windows years ago and never looked back. Running a");
@@ -459,6 +465,101 @@ const OUTPUTS = {
     await line("");
     await streamLine("Off-keyboard: flight sim cockpits (ILS approaches are a hobby), and");
     await streamLine("planning the next trip.");
+    await line("");
+  },
+  cv: async (s) => {
+    const { line, streamLine } = s;
+    await streamLine("Raphael Bitton", { className: "motd" });
+    await streamLine("Chicago, IL  ·  raphael@rbitton.com", { className: "dim" });
+    await line("");
+    await streamLine("now", { className: "dim" });
+    await streamLine("  University of Chicago — B.A. in Data Science & Music,");
+    await streamLine("  President's Scholar. Graduating soon.");
+    await streamLine("  Founder & Lead Systems Engineer at Skylantix.");
+    await streamLine("  Lead Systems Architect at addictd.ai.");
+    await line("");
+    await streamLine("background", { className: "dim" });
+    await streamLine("  High school spent deep in AP exams (for the love of it, not");
+    await streamLine("  for college apps), singing in choir, composing choral music.");
+    await streamLine("  Picked up aviation and travel obsessions at the same time.");
+    await line("");
+    await streamLine("  Gap year after freshman year at UChicago. Visited 24 countries");
+    await streamLine("  across all six inhabited continents in 2023 alone — rewired");
+    await streamLine("  how I think about most things.");
+    await line("");
+    await streamLine("  Came back to school and found Linux. Went all-in — ditched");
+    await streamLine("  the iPhone, MacBook, and Windows desktop. Now spend late");
+    await streamLine("  nights (often at 4 a.m.) building Docker Compose stacks and");
+    await streamLine("  maintaining a constellation of self-hosted services across");
+    await streamLine("  servers nationwide.");
+    await line("");
+    await streamLine("  Composition fell by the wayside, but the creative");
+    await streamLine("  problem-solving it taught me shows up in systems design.");
+    await line("");
+    await streamLine("what's next", { className: "dim" });
+    await streamLine("  About to graduate with no clear idea what's next. Airline?");
+    await streamLine("  Sysadmin? Something that combines both? Honestly, I don't");
+    await streamLine("  know yet — and that's okay. Life rarely gives you the full");
+    await streamLine("  configuration file upfront. The only way forward is to");
+    await streamLine("  test, deploy, and iterate.");
+    await line("");
+    await streamLine("  continuandum est.", { className: "fortune" });
+    await line("");
+  },
+  mail: async (s) => {
+    window.location.href = "mailto:raphael@rbitton.com";
+    s.append("-> ", "dim");
+    s.emitLink("raphael@rbitton.com", "mailto:raphael@rbitton.com");
+    s.append("\n");
+    await s.line("", { gap: 40 });
+  },
+  projects: async (s) => {
+    const { line, streamLine } = s;
+    const PAD = 16;
+    await streamLine("ongoing:", { className: "dim" });
+    await line("");
+    const ongoing = [
+      ["Skylantix",    "founder & lead systems engineer."],
+      ["",             "ops-as-a-service, self-hosted-first."],
+      ["rbitton.com",  "this site. hand-rolled, no framework."],
+      ["",             "(you're looking at it.)"],
+    ];
+    for (const [name, desc] of ongoing) {
+      await streamLine(`  ${name.padEnd(PAD, " ")}${desc}`);
+    }
+    await line("");
+    await streamLine("personal:", { className: "dim" });
+    await line("");
+    const personal = [
+      ["Lantern",         "coming when it's ready."],
+      ["zftop",           "a `top`-like for ZFS pools."],
+      ["custom kernels",  "rbitton-zfs builds of mainline Linux."],
+      ["LFS",             "Linux From Scratch, for the learning."],
+    ];
+    for (const [name, desc] of personal) {
+      await streamLine(`  ${name.padEnd(PAD, " ")}${desc}`);
+    }
+    await line("");
+    await streamLine(
+      "(deep-dives coming. they'll live at rbitton.com/p/<slug>.)",
+      { className: "dim" },
+    );
+    await line("");
+  },
+  now: async (s) => {
+    const { line, streamLine } = s;
+    await streamLine("what i'm up to this season:", { className: "dim" });
+    await line("");
+    await streamLine("  · finishing my last year at UChicago.");
+    await streamLine("  · running Skylantix.");
+    await streamLine("  · rebuilding this site from scratch — you're in the prototype.");
+    await streamLine("  · flight sim on the weekends, when I can tear myself away");
+    await streamLine("    from Docker Compose stacks at 4 a.m.");
+    await line("");
+    await streamLine(
+      "(updated by hand. no timestamps pretending to be automated.)",
+      { className: "dim" },
+    );
     await line("");
   },
   gitlab: async (s) => {
@@ -700,14 +801,14 @@ function setupStdin() {
   });
 
   // Tap/click anywhere: refocus stdin (keeps mobile keyboard up,
-  // doesn't interfere with text selection).
+  // doesn't interfere with text selection). We intentionally don't
+  // re-pin scroll on focus — the visualViewport resize listener
+  // handles the mobile-keyboard-open case, and re-pinning on every
+  // click would fight the user when they scroll up to re-read.
   document.addEventListener("click", () => {
     if (window.getSelection && window.getSelection().toString()) return;
     stdin.focus();
   });
-
-  // Focus is when the on-screen keyboard opens — re-pin immediately.
-  stdin.addEventListener("focus", rePinPrompt);
 }
 
 // -- Kick off --------------------------------------------------------
