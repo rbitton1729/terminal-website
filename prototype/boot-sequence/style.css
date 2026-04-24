@@ -74,6 +74,15 @@ main::-webkit-scrollbar {
 .screen .fortune { color: var(--warn); font-style: italic; }
 .screen .user-input { color: var(--fg); }
 .screen .dim { color: var(--muted); }
+.screen a.link {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.screen a.link:hover,
+.screen a.link:focus {
+  color: var(--aqua);
+}
 
 /* cursor */
 .cursor {

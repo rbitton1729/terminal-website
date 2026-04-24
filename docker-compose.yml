@@ -1,0 +1,9 @@
+name: rbitton-com
+
+services:
+  rbitton-com:
+    container_name: rbitton-com
+    build: .
+    ports:
+      - "0.0.0.0:8123:80"
+    restart: unless-stopped

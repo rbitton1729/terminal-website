@@ -41,9 +41,15 @@ const HELP_ITEMS = [
   ["writing",      "essays and technical pieces"],
   ["cv",           "long-form résumé"],
   ["mail",         "get in touch"],
+  ["gitlab",       "my self-hosted git"],
+  ["github",       "profile on GitHub"],
+  ["flights",      "see my flight map"],
   ["theme <name>", "switch color scheme"],
 ];
-const OUTPUT_COMMANDS = ["whoami", "projects", "now", "writing", "cv", "mail"];
+const OUTPUT_COMMANDS = [
+  "whoami", "projects", "now", "writing", "cv", "mail",
+  "gitlab", "github", "flights",
+];
 
 // -- Fortune pool ----------------------------------------------------
 const FORTUNES = [
@@ -256,19 +262,41 @@ function makeScreen(preEl) {
     keepBottomVisible();
   }
 
-  function emitHelpLine(cmd, desc) {
-    const row = document.createElement("span");
-    const cmdSpan = document.createElement("span");
-    cmdSpan.className = "prompt-path";
-    cmdSpan.textContent = "  " + cmd.padEnd(18, " ");
-    const descSpan = document.createElement("span");
-    descSpan.className = "dim";
-    descSpan.textContent = desc;
-    row.appendChild(cmdSpan);
-    row.appendChild(descSpan);
-    row.appendChild(document.createTextNode("\n"));
-    cursor.before(row);
+  function emitLink(text, href) {
+    const a = document.createElement("a");
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.className = "link";
+    a.textContent = text;
+    cursor.before(a);
     keepBottomVisible();
+  }
+
+  async function emitHelpLine(cmd, desc, { stream = true } = {}) {
+    if (!stream) {
+      const row = document.createElement("span");
+      const cmdSpan = document.createElement("span");
+      cmdSpan.className = "prompt-path";
+      cmdSpan.textContent = "  " + cmd.padEnd(18, " ");
+      const descSpan = document.createElement("span");
+      descSpan.className = "dim";
+      descSpan.textContent = desc;
+      row.appendChild(cmdSpan);
+      row.appendChild(descSpan);
+      row.appendChild(document.createTextNode("\n"));
+      cursor.before(row);
+      keepBottomVisible();
+      return;
+    }
+    await typeOut("  " + cmd.padEnd(18, " "), {
+      className: "prompt-path",
+      minMs: 3,
+      maxMs: 8,
+    });
+    await typeOut(desc, { className: "dim", minMs: 3, maxMs: 8 });
+    append("\n");
+    await sleep(30);
   }
 
   return {
@@ -281,6 +309,7 @@ function makeScreen(preEl) {
     kernLine,
     emitPrompt,
     emitHelpLine,
+    emitLink,
   };
 }
 
@@ -291,7 +320,7 @@ async function runBoot(s) {
   await burst(
     [
       "rbitton BIOS v2.4.1  Copyright (C) 2026 Raphael Bitton",
-      "CPU: AMD Ryzen 9 7950X  16 cores @ 4.5 GHz",
+      "CPU: AMD Threadripper PRO 7995WX  96 cores @ 5.1 GHz",
       "Memory Test: 65536M OK",
       "Detecting IDE drives... none",
       "Detecting NVMe: SAMSUNG 990 PRO 2TB  OK",
@@ -347,7 +376,12 @@ async function runBoot(s) {
 
   append("Password: ");
   await sleep(300);
-  await typeOut("****", { className: "user-input", minMs: 110, maxMs: 240 });
+  // 16 chars — current common-sense recommendation for a strong password.
+  await typeOut("****************", {
+    className: "user-input",
+    minMs: 40,
+    maxMs: 90,
+  });
   await sleep(180);
   await line("");
   await sleep(180);
@@ -364,16 +398,17 @@ async function runBoot(s) {
 
   // MOTD
   const banner = [
-    "      _     _ _   _              ",
-    " _ __| |__ (_) |_| |_ ___  _ __  ",
-    "| '__| '_ \\| | __| __/ _ \\| '_ \\ ",
-    "| |  | |_) | | |_| || (_) | | | |",
-    "|_|  |_.__/|_|\\__|\\__\\___/|_| |_|",
+    " ____             _                _   ____  _ _   _              ",
+    "|  _ \\ __ _ _ __ | |__   __ _  ___| | | __ )(_) |_| |_ ___  _ __  ",
+    "| |_) / _` | '_ \\| '_ \\ / _` |/ _ \\ | |  _ \\| | __| __/ _ \\| '_ \\ ",
+    "|  _ < (_| | |_) | | | | (_| |  __/ | | |_) | | |_| || (_) | | | |",
+    "|_| \\_\\__,_| .__/|_| |_|\\__,_|\\___|_| |____/|_|\\__|\\__\\___/|_| |_|",
+    "           |_|                                                    ",
   ];
   for (const ln of banner) await line(ln, { gap: 25, className: "motd" });
   await line("");
   await line(
-    "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.",
+    "    student, system orchestrator, occasional composer, explorer.",
     { className: "motd" },
   );
   await line("    Founder & Lead Systems Engineer · Skylantix.", {
@@ -398,8 +433,7 @@ async function runBoot(s) {
   await line("");
 
   for (const [cmd, desc] of HELP_ITEMS) {
-    emitHelpLine(cmd, desc);
-    await sleep(35);
+    await emitHelpLine(cmd, desc);
   }
   await line("");
 
@@ -429,6 +463,39 @@ const OUTPUTS = {
     await streamLine("Off-keyboard: flight sim cockpits (ILS approaches are a hobby), and");
     await streamLine("planning the next trip.");
     await line("");
+  },
+  gitlab: async (s) => {
+    window.open(
+      "https://git.skylantix.com/rbitton",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    s.append("-> ", "dim");
+    s.emitLink("git.skylantix.com/rbitton", "https://git.skylantix.com/rbitton");
+    s.append("\n");
+    await s.line("", { gap: 40 });
+  },
+  github: async (s) => {
+    window.open(
+      "https://github.com/rbitton1729",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    s.append("-> ", "dim");
+    s.emitLink("github.com/rbitton1729", "https://github.com/rbitton1729");
+    s.append("\n");
+    await s.line("", { gap: 40 });
+  },
+  flights: async (s) => {
+    window.open(
+      "https://flights.rbitton.com",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    s.append("-> ", "dim");
+    s.emitLink("flights.rbitton.com", "https://flights.rbitton.com");
+    s.append("  (see my flight map)\n", "dim");
+    await s.line("", { gap: 40 });
   },
 };
 
@@ -495,7 +562,7 @@ async function executeCommand(raw) {
     if (cmd === "") {
       // no-op
     } else if (lower === "help") {
-      for (const [item, desc] of HELP_ITEMS) s.emitHelpLine(item, desc);
+      for (const [item, desc] of HELP_ITEMS) await s.emitHelpLine(item, desc);
       await s.line("");
     } else if (OUTPUT_COMMANDS.includes(lower)) {
       const output = OUTPUTS[lower];
