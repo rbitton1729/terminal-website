@@ -1,0 +1,105 @@
+:root {
+  --bg: #1d2021;
+  --fg: #ebdbb2;
+  --dim: #a89984;
+  --muted: #665c54;
+  --accent: #b8bb26;
+  --warn: #fabd2f;
+  --err: #fb4934;
+  --blue: #83a598;
+  --purple: #d3869b;
+  --aqua: #8ec07c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Berkeley Mono", "JetBrains Mono", "IBM Plex Mono",
+    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.4;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.terminal {
+  flex: 1;
+  padding: 1.5rem clamp(1rem, 4vw, 3rem);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+.screen {
+  margin: 0;
+  padding: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+  color: var(--fg);
+  tab-size: 4;
+}
+
+/* semantic line coloring */
+.screen .post { color: var(--dim); }
+.screen .ok   { color: var(--accent); }
+.screen .warn { color: var(--warn); }
+.screen .err  { color: var(--err); }
+.screen .kern { color: var(--dim); }
+.screen .kern .ts { color: var(--muted); }
+.screen .kern .tag { color: var(--blue); }
+.screen .identity { color: var(--purple); }
+.screen .prompt-host { color: var(--accent); }
+.screen .prompt-path { color: var(--blue); }
+.screen .motd { color: var(--aqua); }
+.screen .fortune { color: var(--warn); font-style: italic; }
+.screen .user-input { color: var(--fg); }
+.screen .dim { color: var(--muted); }
+
+/* cursor */
+.cursor {
+  display: inline-block;
+  width: 0.55ch;
+  height: 1em;
+  background: var(--fg);
+  vertical-align: -0.12em;
+  animation: blink 1.06s steps(2, start) infinite;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* reduced motion: no blink, instant render (JS also short-circuits) */
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    animation: none;
+  }
+}
+
+/* responsive: shrink type on narrow screens so 80ch still fits */
+@media (max-width: 640px) {
+  html,
+  body {
+    font-size: 13px;
+  }
+  .terminal {
+    padding: 1rem;
+  }
+}
