@@ -4,6 +4,27 @@
 const screen = document.getElementById("screen");
 const terminal = document.getElementById("terminal");
 
+// Curated fortune pool — one is picked at random per load.
+// Kept short so they fit on one or two 80ch lines.
+const FORTUNES = [
+  { lines: ['"The best way to predict the future is to invent it."'], author: "Alan Kay" },
+  { lines: ['"Talk is cheap. Show me the code."'], author: "Linus Torvalds" },
+  { lines: ['"A little copying is better than a little dependency."'], author: "Rob Pike" },
+  { lines: ['"Write programs that do one thing and do it well."'], author: "Doug McIlroy" },
+  { lines: ['"Simplicity is prerequisite for reliability."'], author: "Edsger Dijkstra" },
+  { lines: ['"Controlling complexity is the essence of computer programming."'], author: "Brian Kernighan" },
+  { lines: ['"Premature optimization is the root of all evil."'], author: "Donald Knuth" },
+  { lines: ['"When in doubt, use brute force."'], author: "Ken Thompson" },
+  {
+    lines: [
+      '"Perfection is achieved not when there is nothing more to add,',
+      ' but when there is nothing left to take away."',
+    ],
+    author: "Antoine de Saint-Exupéry",
+  },
+  { lines: ['"A good composer does not imitate; he steals."'], author: "Igor Stravinsky" },
+];
+
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, reduced ? 0 : ms));
 const jitter = (min, max) => min + Math.random() * (max - min);
@@ -13,6 +34,59 @@ const jitter = (min, max) => min + Math.random() * (max - min);
 const cursor = document.createElement("span");
 cursor.className = "cursor";
 screen.appendChild(cursor);
+
+// Scale the terminal font so the widest expected line never wraps.
+// Measured off a probe using the screen's actual computed font, then re-run
+// on viewport resize.
+const WIDEST_LINE =
+  "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.";
+
+function fitFontToViewport() {
+  screen.style.fontSize = "";
+  const cs = getComputedStyle(screen);
+  const baseSize = parseFloat(cs.fontSize);
+
+  const probe = document.createElement("span");
+  probe.style.cssText =
+    "visibility:hidden;position:absolute;left:-9999px;white-space:pre;";
+  probe.style.font = cs.font;
+  probe.textContent = WIDEST_LINE;
+  document.body.appendChild(probe);
+  const natural = probe.offsetWidth;
+  document.body.removeChild(probe);
+
+  const available = terminal.clientWidth - 4;
+  if (natural > available && natural > 0) {
+    const scaled = Math.max(6, (baseSize * available) / natural);
+    screen.style.fontSize = scaled + "px";
+  }
+}
+
+fitFontToViewport();
+addEventListener("resize", fitFontToViewport);
+
+// Fire the IP lookup as soon as the page loads so it's ready by the time
+// the boot sequence reaches the "Last login" line. Falls back if it fails
+// or stalls. IPv4-only to keep line width predictable.
+const ipPromise = fetch("https://api4.ipify.org?format=json")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((d) => d?.ip || null)
+  .catch(() => null);
+
+// Poll GitHub's gregkh/linux tags for the current stable kernel version.
+// (Linus's tree only tags x.y; Greg's stable tree adds the x.y.z point
+// releases.) kernel.org doesn't serve CORS but GitHub does. Falls back
+// if the fetch fails or returns nothing usable.
+const kernelPromise = fetch(
+  "https://api.github.com/repos/gregkh/linux/tags?per_page=20",
+)
+  .then((r) => (r.ok ? r.json() : null))
+  .then((tags) => {
+    if (!Array.isArray(tags)) return null;
+    const stable = tags.find((t) => /^v\d+\.\d+(\.\d+)?$/.test(t.name));
+    return stable ? stable.name.replace(/^v/, "") : null;
+  })
+  .catch(() => null);
 
 function scrollBottom() {
   terminal.scrollTop = terminal.scrollHeight;
@@ -89,17 +163,29 @@ async function run() {
   await sleep(300);
 
   // ── Kernel / dmesg ──────────────────────────────────────────────────
+  const kernelVer =
+    (await Promise.race([
+      kernelPromise,
+      new Promise((r) => setTimeout(() => r(null), 500)),
+    ])) || "7.0.1";
+  const kernelTag = `${kernelVer}-rbitton-zfs`;
+
   const kernLines = [
-    ["[    0.000000]", " Linux version 6.7.2-rbitton (rbitton@thinkpad) #1 SMP"],
-    ["[    0.000123]", " Command line: BOOT_IMAGE=/boot/vmlinuz-6.7.2 root=UUID=…"],
+    ["[    0.000000]", ` Linux version ${kernelTag} (rbitton@thinkpad) #1 SMP`],
+    ["[    0.000123]", ` Command line: BOOT_IMAGE=/boot/vmlinuz-${kernelTag}`],
     ["[    0.001842]", " x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point'"],
     ["[    0.012394]", " ACPI: Early table checksum verification disabled"],
-    ["[    0.089231]", " usb 1-2: new high-speed USB device number 3 using xhci_hcd"],
-    ["[    0.147812]", " Bluetooth: Core ver 2.22"],
-    ["[    0.193847]", " systemd[1]: Starting systemd-udevd..."],
-    ["[    0.284912]", " nvme nvme0: 8/0/0 default/read/poll queues"],
-    ["[    0.341823]", " rbitton: identity module loaded", "identity"],
-    ["[    0.402837]", " Reached target Multi-User System."],
+    ["[    0.089231]", " nvme nvme0: 8/0/0 default/read/poll queues"],
+    ["[    0.104212]", " SPL: Loaded module v2.2.3"],
+    ["[    0.121749]", " ZFS: Loaded module v2.2.3, ZFS pool version 5000"],
+    ["[    0.135892]", " zfs: importing pool 'tank'... OK (24T, RAIDZ2)"],
+    ["[    0.152431]", " zed: ZFS Event Daemon online"],
+    ["[    0.178120]", " systemd[1]: Starting systemd-udevd..."],
+    ["[    0.210938]", " audio0: composer_iface registered"],
+    ["[    0.254611]", " flightsim: ILS receiver armed"],
+    ["[    0.301812]", " skylantix: fleet interface online"],
+    ["[    0.358723]", " rbitton: identity module loaded", "identity"],
+    ["[    0.419937]", " Reached target Multi-User System."],
   ];
   for (const [ts, rest, special] of kernLines) {
     kernLine(ts, rest, special);
@@ -110,7 +196,7 @@ async function run() {
 
   // ── Login ───────────────────────────────────────────────────────────
   await line("");
-  await line("Arch Linux 6.7.2-rbitton (tty1)", { gap: 220 });
+  await line(`Arch Linux ${kernelTag} (tty1)`, { gap: 220 });
   await line("");
 
   append("rbitton.com login: ");
@@ -125,7 +211,12 @@ async function run() {
   await sleep(180);
   await line("");
   await sleep(180);
-  await line("Last login: Fri Apr 24 09:14:22 on tty2 from kabul.lan", {
+  const ip =
+    (await Promise.race([
+      ipPromise,
+      new Promise((r) => setTimeout(() => r(null), 1200)),
+    ])) || "skylantix.lan";
+  await line(`Last login: Fri Apr 24 09:14:22 on tty2 from ${ip}`, {
     className: "dim",
   });
 
@@ -141,14 +232,19 @@ async function run() {
   ];
   for (const ln of banner) await line(ln, { gap: 25, className: "motd" });
   await line("");
-  await line("    Raphael Bitton — composer, sysadmin, software.", {
-    className: "motd",
+  await line(
+    "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.",
+    { className: "motd" },
+  );
+  await line("    Founder & Lead Systems Engineer · Skylantix.", {
+    className: "dim",
   });
   await line("");
-  await line('    "The best way to predict the future is to implement it."', {
-    className: "fortune",
-  });
-  await line("                                        — Alan Kay", {
+  const fortune = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
+  for (const ln of fortune.lines) {
+    await line("    " + ln, { className: "fortune" });
+  }
+  await line("                                        — " + fortune.author, {
     className: "fortune",
   });
   await line("");

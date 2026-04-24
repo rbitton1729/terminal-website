@@ -46,11 +46,14 @@ body {
 .screen {
   margin: 0;
   padding: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
   font: inherit;
   color: var(--fg);
   tab-size: 4;
+}
+
+.terminal {
+  overflow-x: hidden;
 }
 
 /* semantic line coloring */
@@ -93,12 +96,8 @@ body {
   }
 }
 
-/* responsive: shrink type on narrow screens so 80ch still fits */
+/* narrow-screen padding (font-size is handled dynamically in JS) */
 @media (max-width: 640px) {
-  html,
-  body {
-    font-size: 13px;
-  }
   .terminal {
     padding: 1rem;
   }

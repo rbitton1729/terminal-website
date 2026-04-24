@@ -1,6 +1,6 @@
 # Personal Website Spec — R.A. Bitton / rbitton.com
 
-**Status:** Draft v0.3
+**Status:** Draft v0.4
 **Author:** Raphael Bitton
 **Last updated:** 2026-04-24
 
@@ -38,13 +38,13 @@ The visual hook. A terminal occupies the viewport on landing and drives the narr
 
 ### 4.1 Concept direction: "boot sequence"
 
-Scroll position drives a simulated session. The terminal moves through discrete states, each bound to a scroll anchor. Rough storyboard:
+The terminal moves through discrete states. **Phases 1–4 auto-play on page load** (~6 seconds end-to-end) and land the visitor at the interactive `$` prompt. Only phase 5 is scroll-driven. Rationale: arriving at a machine that boots *feels* like logging in. Scroll-gating the boot itself made the whole thing feel inert in the prototype.
 
-1. **POST / boot** (scroll 0–5%) — BIOS-style POST lines fly by. Brief. Sets the tone: "this is a real computer."
-2. **Kernel messages** (5–15%) — dmesg-style output. Drivers load. One line reads `rbitton: identity module loaded`. Self-aware but not winking too hard.
-3. **Login prompt** (15–20%) — `rbitton.com login:` auto-fills with `guest`, password `****` auto-types, shell drops to `$`.
-4. **MOTD** (20–25%) — the tagline, a fortune-style quote, last login from `somewhere-real-sounding`.
-5. **Interactive shell** (25%+) — from here on, each section corresponds to a "command" the terminal runs. Scrolling past a section boundary auto-types and executes the next command. The command is also a clickable link — clicking re-runs it and smooth-scrolls to the section.
+1. **POST / boot** — BIOS-style POST lines fly by. Brief. Sets the tone: "this is a real computer."
+2. **Kernel messages** — dmesg-style output. Drivers load, ZFS imports the pool (`SPL`, `ZFS: Loaded module ...`, `zfs: importing pool 'tank'`, `zed: ZFS Event Daemon online`), and a handful of lines are quietly personal: `audio0: composer_iface registered`, `flightsim: ILS receiver armed`, `skylantix: fleet interface online`, `rbitton: identity module loaded`. Self-aware but not winking too hard. The kernel version in the `Linux version` line and `uname -a` output is **polled from GitHub's mirror of Greg KH's stable tree** at page load (kernel.org doesn't serve CORS), with a hardcoded fallback — so the site always reflects the current stable patchlevel, tagged as a custom build (`<version>-rbitton-zfs`).
+3. **Login prompt** — `rbitton.com login:` auto-fills with `guest`, password `****` auto-types, shell drops to `$`. The `Last login: … from <host>` line shows the **visitor's real IPv4** (via a free IP-echo service behind a short timeout), falling back to `skylantix.lan` if the lookup stalls or is blocked.
+4. **MOTD** — the tagline, a fortune-style quote picked at random from a curated pool on each load (same pool as the `fortune` command in §5), and the last-login line from (3).
+5. **Interactive shell** (scroll-driven) — from here on, each section corresponds to a "command" the terminal runs. Scrolling past a section boundary auto-types and executes the next command. The command is also a clickable link — clicking re-runs it and smooth-scrolls to the section.
 
 Commands mapped to sections:
 
@@ -81,7 +81,7 @@ Hybrid, as requested.
   - `theme <name>` — switch color scheme (gruvbox, nord, solarized-dark, tokyo-night, matrix)
   - `sudo <anything>` — "Permission denied. This incident will be reported." (easter egg)
   - `uname -a` — prints real-looking output referencing the actual stack the site runs on
-  - `fortune` — random quote from a curated list
+  - `fortune` — random quote from a curated list (same pool that feeds the MOTD line at load)
   - Anything else: `command not found: <x>. Try 'help'.`
 - **Mobile.** No keyboard affordance shown on touch devices. Tap-to-run for clickable commands. Scroll still drives everything.
 
@@ -90,6 +90,7 @@ Hybrid, as requested.
 - **Typography.** Monospace throughout. My preference: **Berkeley Mono** if I'm willing to pay, otherwise **IBM Plex Mono** or **JetBrains Mono**. Fallback to system monospace. Single weight primarily; bold for emphasis only.
 - **Color.** Default theme is a dark terminal palette — leaning gruvbox-dark or a custom variant. Theme-switchable via the `theme` command. Respect `prefers-color-scheme` for first paint.
 - **Layout.** Full-viewport terminal on landing. Subsequent sections are full-width but constrained inner column (~80ch) to preserve the terminal feel. No card UIs, no gradients, no glassmorphism.
+- **No wrap on the terminal.** The terminal font scales dynamically so the widest printed line always fits the viewport — monospace makes this straightforward. On tight mobile the text shrinks rather than wrapping a dmesg line in half, which would break the illusion completely.
 - **Motion.** Typing animation for commands (realistic, with a slight random jitter on keystroke timing). Cursor blink. Subtle scanline overlay optional (toggleable, off by default — CRT cosplay is a cliché). No parallax. No scroll-jacking — the page scrolls normally; animations respond to scroll position but don't hijack it.
 - **Icons.** None, ideally. If unavoidable (e.g. social links), use Unicode box-drawing or Nerd Font glyphs.
 
@@ -121,7 +122,11 @@ Leaning toward Skylantix infra with a clear out-of-band fallback (static export 
 - Preview deploys for branches, served at `preview-<branch>.rbitton.com`.
 - If I skip TS entirely, the pipeline collapses to "rsync the repo to webroot." Which is fine.
 
-### 7.4 Performance budget
+### 7.4 Dynamic content, third-party calls
+
+Two small pieces of personalization require at-load fetches to third-party services: the visitor's IP (for the `Last login` line) and the current stable kernel version (for the `Linux version` line and `uname -a`). Neither is analytics — no data about the visitor is sent beyond what the service already sees from the request — but they do cross origins, and the spec is strict about not trusting third-party infra. Both calls are behind short timeouts with graceful fallbacks, so privacy-strict browsers, ad blockers, and flaky networks still get a clean boot. **Longer-term:** once the site is living on Skylantix infra, both should move to small first-party proxy endpoints (nginx + a cache) so the only origin the site touches is `rbitton.com`.
+
+### 7.5 Performance budget
 
 - First contentful paint under 1s on a fast connection; under 2.5s on 3G.
 - No-JS fallback renders all content as a plain vertical document with the terminal styled as an HTML `<pre>`. The site must be fully readable with JS disabled.
@@ -145,12 +150,17 @@ Leaning toward Skylantix infra with a clear out-of-band fallback (static export 
 - **No analytics.** No JS for tracking, no self-hosted Plausible, nothing. I don't want the data.
 - **No guestbook.** Excessive, spam target.
 - **No music on the site.** Dropped from scope. If it comes back later it's a separate subdomain or a single linked-out page, not part of v1.
+- **Boot auto-plays on load.** Only the post-shell section (phase 5) is scroll-driven. See §4.1.
+- **Kernel version is live.** Polled from GitHub's mirror of Greg KH's stable tree with a hardcoded fallback. Tagged as a custom build (`-rbitton-zfs`).
+- **`Last login` shows the visitor's real IP.** Via a free IP-echo service, with a short timeout and a `skylantix.lan` fallback.
+- **MOTD fortune is randomized.** Same curated pool as the `fortune` command.
 
 **Still open:**
 
 1. **TypeScript or plain JS for the terminal.** The state machine has enough states and transitions that typing it would catch real bugs. But adding a compile step to an otherwise zero-build site is a taste call. Leaning TS + one-shot `esbuild` on deploy.
 2. **CV on the site.** Public plaintext `man rbitton` plus a downloadable PDF, or PDF only behind a mailto? Leaning toward public — the upside of being findable outweighs the downside of recruiter spam.
 3. **Contact form or just mailto?** `mail` as a mutt-like compose screen is cute but needs a backend (or a third-party form service, which I don't want). A fake compose screen that drops into `mailto:` on send is probably the honest move — keeps the aesthetic, zero backend.
+4. **First-party proxies for dynamic content.** The IP echo and kernel-version lookup (§7.4) currently hit third parties. Not a v1 blocker, but worth moving in-house once the site is on Skylantix infra. Tiny nginx location blocks with short caches; ~20 lines total.
 
 ## 10. Scope for v1
 
