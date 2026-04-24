@@ -1,3 +1,5 @@
+"use strict";
+
 // =====================================================================
 // rbitton.com prototype — single-pane terminal
 // One fixed "tmux window" that auto-plays the boot sequence, then sits
