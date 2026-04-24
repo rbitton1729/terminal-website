@@ -1,6 +1,6 @@
 # Personal Website Spec — R.A. Bitton / rbitton.com
 
-**Status:** Draft v0.4
+**Status:** Draft v0.5
 **Author:** Raphael Bitton
 **Last updated:** 2026-04-24
 
@@ -34,51 +34,43 @@ What actually lives on the site:
 
 ## 4. The terminal concept
 
-The visual hook. A terminal occupies the viewport on landing and drives the narrative as the user scrolls. It is **not** a decorative SVG of a terminal — it's a real-feeling terminal emulator surface that renders monospace text, handles a cursor, and accepts input.
+The visual hook. A single fixed pane — a tmux window — fills the viewport and stays there for the entire experience. After an auto-playing boot sequence, the user interacts by typing commands; output prints inline. It is **not** a decorative SVG of a terminal — it's a real-feeling terminal emulator surface that renders monospace text, handles a cursor, and accepts input.
 
 ### 4.1 Concept direction: "boot sequence"
 
-The terminal moves through discrete states. **Phases 1–4 auto-play on page load** (~6 seconds end-to-end) and land the visitor at the interactive `$` prompt. Only phase 5 is scroll-driven. Rationale: arriving at a machine that boots *feels* like logging in. Scroll-gating the boot itself made the whole thing feel inert in the prototype.
+One fixed pane fills the visual viewport. On page load, the boot sequence auto-plays (~6 seconds) and ends with the shell auto-typing `help` to reveal the command menu. The user is then at a blinking prompt, and the site behaves like a real shell from there on.
 
-1. **POST / boot** — BIOS-style POST lines fly by. Brief. Sets the tone: "this is a real computer."
+Phases of the auto-play boot:
+
+1. **POST** — BIOS-style POST lines fly by. Brief. Sets the tone: "this is a real computer."
 2. **Kernel messages** — dmesg-style output. Drivers load, ZFS imports the pool (`SPL`, `ZFS: Loaded module ...`, `zfs: importing pool 'tank'`, `zed: ZFS Event Daemon online`), and a handful of lines are quietly personal: `audio0: composer_iface registered`, `flightsim: ILS receiver armed`, `skylantix: fleet interface online`, `rbitton: identity module loaded`. Self-aware but not winking too hard. The kernel version in the `Linux version` line and `uname -a` output is **polled from GitHub's mirror of Greg KH's stable tree** at page load (kernel.org doesn't serve CORS), with a hardcoded fallback — so the site always reflects the current stable patchlevel, tagged as a custom build (`<version>-rbitton-zfs`).
-3. **Login prompt** — `rbitton.com login:` auto-fills with `guest`, password `****` auto-types, shell drops to `$`. The `Last login: … from <host>` line shows the **visitor's real IPv4** (via a free IP-echo service behind a short timeout), falling back to `skylantix.lan` if the lookup stalls or is blocked.
-4. **MOTD** — the tagline, a fortune-style quote picked at random from a curated pool on each load (same pool as the `fortune` command in §5), and the last-login line from (3).
-5. **Interactive shell** (scroll-driven) — from here on, each section corresponds to a "command" the terminal runs. Scrolling past a section boundary auto-types and executes the next command. The command is also a clickable link — clicking re-runs it and smooth-scrolls to the section.
+3. **Login** — `rbitton.com login:` auto-fills with `guest`, password `****` auto-types, shell drops to `$`. The `Last login: … from <host>` line shows the **visitor's real IPv4** (via a free IP-echo service behind a short timeout), falling back to `skylantix.lan` if the lookup stalls or is blocked.
+4. **MOTD** — the tagline, a fortune-style quote picked at random from a curated pool on each load (same pool as the `fortune` command in §5).
+5. **Auto-help** — the shell auto-types `help` and prints a human-labeled command menu. This is the landing affordance: the visitor sees exactly what they can do without having to know terminal conventions.
 
-Commands mapped to sections:
-
-- `whoami` → identity block with bio
-- `ls ~/projects/` → project grid, each project a `cat projects/lantern.md`-style expansion
-- `cat ~/now.txt` → now page
-- `ls ~/writing/` → writing section, each piece a `cat writing/<slug>.md`-style expansion
-- `man rbitton` → long-form CV, scrollable
-- `mail` → contact form rendered as a mutt-like compose screen
-- `exit` → footer, with a blinking cursor fading to black
+Then the REPL: a blinking prompt waiting for input. Typed commands print their output inline, directly below where the user typed. Scrolling within the pane reveals scrollback; it doesn't trigger anything. See §5 for the command set.
 
 ### 4.2 Why this works for the stated goal
 
-It gives every section a distinctive visual identity (different "commands" look different) without fragmenting the aesthetic. The monospace typography stays consistent, but the *content shape* changes — grid for `ls`, prose for `cat`, form for `mail`. That variation is what prevents scroll fatigue in a single-concept site.
+Most personal sites look like each other. This one looks like a machine. That alone does most of the distinctive-on-first-impression work before the visitor has read a word.
 
-It also lets me hide easter eggs in places a normal site can't: a `sudo` command that demands a password, a `history` command that shows past projects, a `fortune` that actually works. These aren't required for v1, but the architecture should leave room.
+It's also honest: I use Linux and tmux daily. A tmux pane on a site is the truest possible presentation of how I actually spend my time. And it's efficient — one surface, one way in, zero navigation chrome. Visitors aren't learning a site; they're using a shell. That reads as taste and competence faster than any amount of styled copy could.
 
-### 4.3 Alternatives considered (and rejected, for now)
+The single-pane constraint is also what lets easter eggs land: a `sudo` that gets you permission-denied, a `fortune` that actually rolls, a `theme` that swaps palettes live. They're in the same surface as everything else, which makes them feel like they *belong*, not like bolted-on gimmicks.
 
-- **Morphing terminal states (boot → different apps)** — too abstract; hard to map content to. Saved as a fallback.
-- **Non-scroll, fully keyboard-driven** — purist and cool, but hostile to mobile and to the 80% of visitors who won't know to type. Rejected.
+### 4.3 Alternatives considered (and rejected)
+
+- **Scroll-driven multi-section** — each "command" as its own scroll-anchored section, auto-playing as the user scrolls past. Prototyped and dropped: requires ~100vh of scroll runway per section, which creates overscroll, gap-management problems, and two competing interaction models (scroll and type) fighting each other. The single pane is simpler in every way.
+- **Morphing terminal states (boot → different apps)** — too abstract; hard to map content to. Saved as a fallback concept.
 - **Terminal as hero only, normal site below** — safe but wastes the concept. Rejected.
 
 ## 5. Interaction model
 
-Three tiers of engagement, layered so nobody is ever gated:
+Exactly one way in: typing. No sections, no scroll-triggered reveals, no clickable menus on top of the terminal. The auto-help menu at the end of boot makes the command set discoverable without the visitor needing prior terminal knowledge; everything else works like a real shell.
 
-### 5.1 Spectators (scroll)
+### 5.1 Auto-help (the landing affordance)
 
-Scrolling is primary. Everything on the site is reachable by scrolling top to bottom on any device. As the viewport crosses each section boundary, the terminal auto-types and runs the corresponding command, so the shape of the site teaches itself without any action required.
-
-### 5.2 Clickers (auto-help menu + clickable commands)
-
-Immediately after MOTD, the shell auto-types `help` and prints a human-labeled menu. The menu uses plain-English descriptions on the right so it reads as navigation to a non-terminal-native visitor, while still *looking* like a real `--help` output:
+Immediately after MOTD, the shell auto-types `help` and prints a human-labeled command menu — no user action required. Plain-English descriptions on the right so it reads as navigation even to visitors who don't know terminal conventions:
 
 ```
 $ help
@@ -89,32 +81,26 @@ $ help
   cv                  long-form résumé
   mail                get in touch
   theme <name>        switch color scheme
-
-  scroll to explore, or click any line to jump.
 ```
 
-Each line is a clickable link that jumps to the corresponding section and re-runs the command's type-out animation. The full Unix-y forms (`ls ~/projects/`, `man rbitton`, `cat ~/now.txt`) are what each scroll-section *does*, but they don't appear in `help` — the friendly names are enough for navigation.
+### 5.2 REPL commands
 
-### 5.3 Typers (optional REPL)
-
-On desktop, the blinking cursor plus a hover hint (`type 'help' for more`) invites power users into an actual REPL. Supported:
-
-- `help` — the menu from §5.2
-- `whoami`, `projects`, `now`, `writing`, `cv`, `mail` — jump to sections. Unix-y aliases also accepted: `ls ~/projects/`, `man rbitton`, `cat ~/now.txt`.
-- `clear` — resets terminal to top
-- `theme <name>` — switch color scheme (gruvbox, nord, solarized-dark, tokyo-night, matrix)
+- `help` — reprints the menu above.
+- `whoami`, `projects`, `now`, `writing`, `cv`, `mail` — print their output inline. Unix-y aliases also accepted: `ls ~/projects/`, `man rbitton`, `cat ~/now.txt`.
+- `clear` — wipe the pane, fresh prompt at top. Same as **Ctrl+L**.
+- `theme <name>` — switch color scheme (gruvbox, nord, solarized-dark, tokyo-night, matrix).
 - `sudo <anything>` — "Permission denied. This incident will be reported." (easter egg)
-- `uname -a` — real-looking output referencing the actual stack the site runs on
-- `fortune` — random quote from a curated list (same pool that feeds the MOTD line at load)
+- `uname -a` — real-looking output referencing the actual stack the site runs on.
+- `fortune` — random quote from a curated list (same pool that feeds the MOTD line at load).
 - Anything else: `command not found: <x>. Try 'help'.`
 
-The REPL is entirely opt-in. Scroll and click reach every piece of content without ever typing.
+**Keyboard shortcuts** match a real terminal: **Ctrl+L** clears the pane, **Ctrl+C** aborts the currently-printing command (or discards the current input line if nothing's running).
 
-### 5.4 Mobile
+### 5.3 Mobile
 
-No keyboard affordance is shown on touch devices. The auto-help menu still prints after MOTD, with tap-to-run on each line. Scroll drives everything.
+Tapping anywhere focuses a hidden `<input>`, which surfaces the on-screen keyboard. As the keyboard opens, the pane physically shrinks to match `visualViewport.height` — the prompt stays visible right above the keyboard instead of being hidden behind it. Autocorrect, suggestions, autocomplete, and the OS keyboard's own UI all keep working because typing is handled natively by the hidden input; the visible pane just mirrors its value.
 
-### 5.5 Plain version escape hatch
+### 5.4 Plain version escape hatch
 
 The site serves a plain semantic HTML fallback for no-JS visitors and screen readers (§7.5, §8). To make that fallback accessible to *anyone* overwhelmed by the terminal theater, surface a visible link to it: one dim line, footer or top-right corner, copy like `"not into the terminal? → plain version"`. Points at `/plain/` (or `?plain=1`), which serves the same content as the no-JS render. No JS, no theater, no third-party calls. A one-to-one reader for the entire site, always reachable.
 
@@ -122,9 +108,9 @@ The site serves a plain semantic HTML fallback for no-JS visitors and screen rea
 
 - **Typography.** Monospace throughout. My preference: **Berkeley Mono** if I'm willing to pay, otherwise **IBM Plex Mono** or **JetBrains Mono**. Fallback to system monospace. Single weight primarily; bold for emphasis only.
 - **Color.** Default theme is a dark terminal palette — leaning gruvbox-dark or a custom variant. Theme-switchable via the `theme` command. Respect `prefers-color-scheme` for first paint.
-- **Layout.** Full-viewport terminal on landing. Subsequent sections are full-width but constrained inner column (~80ch) to preserve the terminal feel. No card UIs, no gradients, no glassmorphism.
+- **Layout.** One fixed pane filling the visual viewport. No visible scrollbar — content that overflows scrolls internally (newest at the bottom, oldest falls into scrollback, exactly like a real TTY). No separate sections, no cards, no gradients, no glassmorphism. Long-form content (writing pieces, the full CV) lives at its own permalinked URL so it can be shared and read comfortably outside the pane.
 - **No wrap on the terminal.** The terminal font scales dynamically so the widest printed line always fits the viewport — monospace makes this straightforward. On tight mobile the text shrinks rather than wrapping a dmesg line in half, which would break the illusion completely.
-- **Motion.** Typing animation for commands (realistic, with a slight random jitter on keystroke timing). Cursor blink. Subtle scanline overlay optional (toggleable, off by default — CRT cosplay is a cliché). No parallax. No scroll-jacking — the page scrolls normally; animations respond to scroll position but don't hijack it.
+- **Motion.** Typing animation for commands (realistic, with a slight random jitter on keystroke timing). Output streams character-by-character fast enough to read, slow enough to feel alive. Cursor blink. Subtle scanline overlay optional (toggleable, off by default — CRT cosplay is a cliché). No parallax.
 - **Icons.** None, ideally. If unavoidable (e.g. social links), use Unicode box-drawing or Nerd Font glyphs.
 
 ## 7. Architecture
@@ -136,7 +122,7 @@ Hand-coded. No SSG, no framework, no build step beyond maybe minification.
 - **HTML.** Plain, semantic, hand-written. One `index.html` for the landing experience; separate pages for writing pieces and project deep-dives.
 - **CSS.** Plain CSS. Custom properties for theme variables so `theme <n>` just swaps a `data-theme` attribute on `<html>`. No Tailwind, no preprocessor.
 - **JS.** Plain JS, or plain TypeScript compiled with a one-shot `esbuild` step on deploy if I want the state machine typed. No bundler, no framework — ES modules served directly.
-- **Terminal component.** Hand-rolled. Plain DOM + a state machine for the scroll-driven sequence. No xterm.js — way too heavy for what this is.
+- **Terminal component.** Hand-rolled. Plain DOM + a state machine for the boot sequence and a small REPL dispatch table. No xterm.js — way too heavy for what this is.
 - **Content.** Writing pieces and project deep-dives as hand-written HTML. Not enough of them to justify a Markdown pipeline. If the count grows past ~10 pieces, revisit.
 
 ### 7.2 Hosting
@@ -168,11 +154,11 @@ Two small pieces of personalization require at-load fetches to third-party servi
 
 ## 8. Accessibility
 
-- Scroll-driven animations respect `prefers-reduced-motion`: with reduced motion, commands appear instantly, no typing effect, no cursor blink.
-- All content reachable without the terminal theater — a "skip to content" link and semantic HTML underneath the styling.
-- Color contrast meets WCAG AA at minimum in all themes.
-- Keyboard navigable end-to-end. Tab through commands and links in a sensible order.
-- Screen reader: the terminal's decorative boot sequence is `aria-hidden`. Section content is announced normally.
+- **Reduced motion.** With `prefers-reduced-motion`, the boot sequence renders instantly (no per-line pacing), output prints whole-line instead of character-by-character, and the cursor doesn't blink.
+- **Plain version.** All content is reachable at `/plain/` as semantic HTML (§5.4, §7.5). Same document serves as the no-JS fallback.
+- **Color contrast.** WCAG AA minimum in all themes.
+- **Keyboard.** The hidden input is the focus target; typing works as expected. Scrolling the scrollback via `PageUp`/`PageDown` and arrow keys.
+- **Screen reader.** The animated boot sequence is `aria-hidden` (decorative). Command output prints into an `aria-live` region so new text is announced as it streams.
 
 ## 9. Decisions and remaining questions
 
@@ -183,7 +169,11 @@ Two small pieces of personalization require at-load fetches to third-party servi
 - **No analytics.** No JS for tracking, no self-hosted Plausible, nothing. I don't want the data.
 - **No guestbook.** Excessive, spam target.
 - **No music on the site.** Dropped from scope. If it comes back later it's a separate subdomain or a single linked-out page, not part of v1.
-- **Boot auto-plays on load.** Only the post-shell section (phase 5) is scroll-driven. See §4.1.
+- **Single pane, tmux-style.** One fixed pane fills the visual viewport. No multi-section scroll, no visible scrollbar. See §4.1, §6.
+- **Typing is the only interaction.** Auto-help makes the command set discoverable; scrolling inside the pane just reveals scrollback.
+- **Boot auto-plays on load**, ending with auto-typed `help` and a blinking REPL prompt.
+- **Ctrl+L and Ctrl+C work** like a real terminal (clear / abort).
+- **Mobile: tap anywhere focuses the hidden input**; the pane resizes above the on-screen keyboard via `visualViewport.height`.
 - **Kernel version is live.** Polled from GitHub's mirror of Greg KH's stable tree with a hardcoded fallback. Tagged as a custom build (`-rbitton-zfs`).
 - **`Last login` shows the visitor's real IP.** Via a free IP-echo service, with a short timeout and a `skylantix.lan` fallback.
 - **MOTD fortune is randomized.** Same curated pool as the `fortune` command.
@@ -199,14 +189,12 @@ Two small pieces of personalization require at-load fetches to third-party servi
 
 Ship in this order:
 
-1. Static scaffold, content pages rendering as plain HTML. No terminal yet.
-2. Terminal component with boot sequence + scroll-driven commands. Sections render inline with their "command output."
-3. Interactive REPL layered on top. Click-to-run first, then keyboard input.
-4. Theme switching.
-5. Easter eggs, polish, colophon.
+1. Static scaffold — single `index.html` serving the pane, no boot yet, just a static prompt.
+2. Boot sequence auto-play: POST → kernel → login → MOTD → auto-help → blinking prompt.
+3. REPL: `help`, `whoami`, `projects`, `now`, `writing`, `cv`, `mail`, `clear`, `uname -a`, `fortune`, `sudo`, `theme` (stub), plus Ctrl+L and Ctrl+C.
+4. Real content — bios, project entries, now page, writing pieces at their permalinked URLs.
+5. Theme switching (wired up end-to-end).
+6. `/plain/` page serving the full content as semantic HTML.
+7. Polish — colophon, remaining easter eggs, copy pass.
 
-v1 ships when 1–3 are solid. 4 and 5 can trickle in.
-
----
-
-**Next step suggestion:** before writing any code, mock the landing-page terminal sequence as a static frame-by-frame storyboard (6–8 frames) to pressure-test whether the boot concept actually reads well or ends up feeling gimmicky. If the storyboard is boring, the site will be boring.
+v1 ships when 1–4 are solid. 5–7 can trickle in.

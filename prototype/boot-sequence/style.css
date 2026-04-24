@@ -19,7 +19,10 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* `dvh` shrinks when the mobile on-screen keyboard opens; `vh`
+     stays the same. Keep `vh` as a fallback for older browsers. */
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: var(--bg);
   color: var(--fg);
@@ -34,6 +37,7 @@ body {
    are hidden; old content falls into the scrollback. */
 main {
   height: 100vh;
+  height: 100dvh;
   padding: 1.5rem clamp(1rem, 4vw, 3rem);
   overflow-y: auto;
   overflow-x: hidden;
@@ -100,18 +104,22 @@ main::-webkit-scrollbar {
   }
 }
 
-/* Off-screen input for cross-platform keystroke capture, especially
-   to surface the on-screen keyboard on mobile when the user taps. */
+/* Off-screen input for cross-platform keystroke capture. Positioned at
+   the bottom of the viewport so iOS doesn't try to auto-scroll the
+   entire page to reveal it when it gains focus. font-size must be
+   >= 16px or iOS will zoom in on focus. */
 #stdin {
   position: fixed;
-  top: -100px;
-  left: -100px;
+  bottom: 0;
+  left: 50%;
   width: 1px;
   height: 1px;
   opacity: 0;
   border: 0;
   outline: none;
   padding: 0;
+  pointer-events: none;
+  font-size: 16px;
 }
 
 @media (max-width: 640px) {

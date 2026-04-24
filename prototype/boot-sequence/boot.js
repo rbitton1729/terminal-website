@@ -1,10 +1,10 @@
-// ═════════════════════════════════════════════════════════════════════
+// =====================================================================
 // rbitton.com prototype — single-pane terminal
 // One fixed "tmux window" that auto-plays the boot sequence, then sits
 // at a prompt accepting typed commands. No scroll-driven sections, no
 // visible scrollbar; content that exceeds the pane falls off the top
 // into the scrollback just like a real TTY.
-// ═════════════════════════════════════════════════════════════════════
+// =====================================================================
 
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const jitter = (min, max) => min + Math.random() * (max - min);
@@ -33,7 +33,7 @@ const sleep = (ms) =>
     }
   });
 
-// ── Command menu (used by boot's auto-help and the `help` REPL cmd) ─
+// -- Command menu (used by boot's auto-help and the `help` REPL cmd) -
 const HELP_ITEMS = [
   ["whoami",       "about me"],
   ["projects",     "what I've built"],
@@ -45,7 +45,7 @@ const HELP_ITEMS = [
 ];
 const OUTPUT_COMMANDS = ["whoami", "projects", "now", "writing", "cv", "mail"];
 
-// ── Fortune pool ────────────────────────────────────────────────────
+// -- Fortune pool ----------------------------------------------------
 const FORTUNES = [
   { lines: ['"The best way to predict the future is to invent it."'], author: "Alan Kay" },
   { lines: ['"Talk is cheap. Show me the code."'], author: "Linus Torvalds" },
@@ -65,7 +65,7 @@ const FORTUNES = [
   { lines: ['"A good composer does not imitate; he steals."'], author: "Igor Stravinsky" },
 ];
 
-// ── Async lookups (fired at load, awaited when needed) ──────────────
+// -- Async lookups (fired at load, awaited when needed) --------------
 const ipPromise = fetch("https://api4.ipify.org?format=json")
   .then((r) => (r.ok ? r.json() : null))
   .then((d) => d?.ip || null)
@@ -82,7 +82,7 @@ const kernelPromise = fetch(
   })
   .catch(() => null);
 
-// ── Mobile font fit ─────────────────────────────────────────────────
+// -- Mobile font fit -------------------------------------------------
 // The widest line expected anywhere. If it fits, everything fits.
 const WIDEST_LINE =
   "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.";
@@ -118,7 +118,46 @@ function fitFontToViewport() {
 fitFontToViewport();
 addEventListener("resize", fitFontToViewport);
 
-// ── Screen factory ──────────────────────────────────────────────────
+// Explicitly resize the pane to the *visual* viewport height. `dvh`
+// handles this on many browsers but iOS Safari has historically lagged,
+// so we override in JS. When the on-screen keyboard opens, the visual
+// viewport shrinks and so does main — its bottom edge lands right
+// above the keyboard.
+function applyViewportHeight() {
+  const h = window.visualViewport
+    ? window.visualViewport.height
+    : window.innerHeight;
+  document.documentElement.style.height = h + "px";
+  document.body.style.height = h + "px";
+  const main = document.getElementById("terminal");
+  if (main) main.style.height = h + "px";
+}
+
+function rePinPrompt() {
+  const doScroll = () => {
+    if (activeScreen && activeScreen.cursor) {
+      activeScreen.cursor.scrollIntoView({ block: "end" });
+    }
+  };
+  doScroll();
+  requestAnimationFrame(doScroll);
+  setTimeout(doScroll, 150);
+  setTimeout(doScroll, 350);
+}
+
+function onViewportChange() {
+  applyViewportHeight();
+  rePinPrompt();
+}
+
+applyViewportHeight();
+addEventListener("resize", onViewportChange);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", onViewportChange);
+  window.visualViewport.addEventListener("scroll", onViewportChange);
+}
+
+// -- Screen factory --------------------------------------------------
 function makeScreen(preEl) {
   const cursor = document.createElement("span");
   cursor.className = "cursor";
@@ -245,7 +284,7 @@ function makeScreen(preEl) {
   };
 }
 
-// ── Boot sequence ───────────────────────────────────────────────────
+// -- Boot sequence ---------------------------------------------------
 async function runBoot(s) {
   const { append, line, burst, typeOut, kernLine, emitPrompt, emitHelpLine } = s;
 
@@ -368,7 +407,7 @@ async function runBoot(s) {
   emitPrompt();
 }
 
-// ── Command outputs (content only; streamed inline in the REPL) ────
+// -- Command outputs (content only; streamed inline in the REPL) ----
 const OUTPUTS = {
   whoami: async (s) => {
     const { line, streamLine } = s;
@@ -393,7 +432,7 @@ const OUTPUTS = {
   },
 };
 
-// ── REPL ────────────────────────────────────────────────────────────
+// -- REPL ------------------------------------------------------------
 let activeScreen = null;
 let inputSpan = null;
 
@@ -558,31 +597,42 @@ function setupStdin() {
       return;
     }
 
-    if (!inputSpan) return;
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-
-    if (e.key === "Enter") {
+    // Desktop Enter (hardware keyboards).
+    if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (!inputSpan) return;
       e.preventDefault();
-      const raw = inputSpan.textContent;
-      executeCommand(raw);
-    } else if (e.key === "Backspace") {
-      e.preventDefault();
-      if (inputSpan.textContent.length > 0) {
-        inputSpan.textContent = inputSpan.textContent.slice(0, -1);
-      }
+      const raw = stdin.value;
       stdin.value = "";
+      executeCommand(raw);
     }
   });
 
+  // Mobile/virtual keyboards fire `insertLineBreak` via beforeinput for
+  // the on-screen Return key — catch that too.
+  stdin.addEventListener("beforeinput", (e) => {
+    if (!inputSpan) return;
+    if (
+      e.inputType === "insertLineBreak" ||
+      e.inputType === "insertParagraph"
+    ) {
+      e.preventDefault();
+      const raw = stdin.value;
+      stdin.value = "";
+      executeCommand(raw);
+    }
+  });
+
+  // Mirror stdin.value directly into the visible input span. We let
+  // the hidden <input> handle native character insertion, autocorrect,
+  // backspace, IME, and paste on its own — we just reflect its state
+  // character-for-character. This is the simplest cross-browser path
+  // and sidesteps mobile keyboards' cumulative-buffer quirks.
   stdin.addEventListener("input", () => {
     if (!inputSpan) {
       stdin.value = "";
       return;
     }
-    if (stdin.value) {
-      inputSpan.textContent += stdin.value;
-      stdin.value = "";
-    }
+    inputSpan.textContent = stdin.value;
   });
 
   // Tap/click anywhere: refocus stdin (keeps mobile keyboard up,
@@ -591,9 +641,12 @@ function setupStdin() {
     if (window.getSelection && window.getSelection().toString()) return;
     stdin.focus();
   });
+
+  // Focus is when the on-screen keyboard opens — re-pin immediately.
+  stdin.addEventListener("focus", rePinPrompt);
 }
 
-// ── Kick off ────────────────────────────────────────────────────────
+// -- Kick off --------------------------------------------------------
 setupStdin();
 const boot = makeScreen(document.getElementById("screen"));
 runBoot(boot)
