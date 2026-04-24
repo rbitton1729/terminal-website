@@ -19,28 +19,31 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100vh;
+  overflow: hidden;
   background: var(--bg);
   color: var(--fg);
   font-family: "Berkeley Mono", "JetBrains Mono", "IBM Plex Mono",
     ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 15px;
   line-height: 1.4;
-  height: 100%;
-  overflow: hidden;
 }
 
-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.terminal {
-  flex: 1;
+/* The terminal is one fixed pane — like a tmux window. Content that
+   exceeds the pane scrolls internally (newest at bottom). Scrollbars
+   are hidden; old content falls into the scrollback. */
+main {
+  height: 100vh;
   padding: 1.5rem clamp(1rem, 4vw, 3rem);
-  overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--muted) transparent;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  /* Disable the browser's automatic scroll-anchoring so new content
+     at the bottom of the pane actually triggers our auto-scroll. */
+  overflow-anchor: none;
+}
+main::-webkit-scrollbar {
+  display: none;
 }
 
 .screen {
@@ -50,10 +53,6 @@ body {
   font: inherit;
   color: var(--fg);
   tab-size: 4;
-}
-
-.terminal {
-  overflow-x: hidden;
 }
 
 /* semantic line coloring */
@@ -89,16 +88,34 @@ body {
   }
 }
 
-/* reduced motion: no blink, instant render (JS also short-circuits) */
+/* Past prompts (where typing is no longer routed) stop blinking. */
+.cursor.idle {
+  animation: none;
+  visibility: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cursor {
     animation: none;
   }
 }
 
-/* narrow-screen padding (font-size is handled dynamically in JS) */
+/* Off-screen input for cross-platform keystroke capture, especially
+   to surface the on-screen keyboard on mobile when the user taps. */
+#stdin {
+  position: fixed;
+  top: -100px;
+  left: -100px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  border: 0;
+  outline: none;
+  padding: 0;
+}
+
 @media (max-width: 640px) {
-  .terminal {
+  main {
     padding: 1rem;
   }
 }

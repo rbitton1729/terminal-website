@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main id="terminal" class="terminal" aria-label="rbitton.com terminal">
+    <main id="terminal" aria-label="rbitton.com terminal">
       <pre id="screen" class="screen" aria-hidden="true"></pre>
       <noscript>
         <pre class="screen">
@@ -18,6 +18,15 @@ Contact: raphael@skylantix.com
         </pre>
       </noscript>
     </main>
+    <input
+      id="stdin"
+      type="text"
+      aria-label="terminal input"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+    />
     <script type="module" src="boot.js"></script>
   </body>
 </html>
