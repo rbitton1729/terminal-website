@@ -267,10 +267,11 @@ main::-webkit-scrollbar {
 #vm-screen .vm-text {
   color: var(--fg);
   font-family: inherit;
-  /* The VM is its own "monitor" — scale up so the 80x25 text grid
-     fills the pane instead of looking like a small inset. clamp()
-     keeps it readable on small screens and not cartoonish on large. */
-  font-size: clamp(14px, 1.7vw, 22px);
+  /* The VM is its own "monitor" — scale aggressively so the 80x25
+     text grid fills the pane on big monitors instead of looking like
+     a small inset. clamp() keeps it readable on phones and not
+     cartoonish past ~1080p. */
+  font-size: clamp(16px, 2.4vw, 32px);
   line-height: 1.25;
   margin: 0;
 }

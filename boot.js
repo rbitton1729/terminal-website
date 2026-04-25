@@ -799,27 +799,17 @@ const OUTPUTS = {
   },
 };
 
-// One-keystroke Y/N confirmation. Ignores pure modifier presses; any
-// non-`y` key (including N, Enter, Esc) is treated as cancel.
-function awaitConfirm() {
+// Line-based input capture for in-command prompts (e.g. "[y/N]"
+// confirmations). Reuses the existing #stdin flow so the user can
+// see what they're typing, edit/backspace, and submit with Enter
+// just like at a real shell prompt. The keydown/beforeinput handlers
+// in setupStdin route Enter to the resolver when this is set.
+let pendingLineResolver = null;
+
+function awaitLine(s) {
   return new Promise((resolve) => {
-    const handler = (e) => {
-      if (
-        e.key === "Shift" ||
-        e.key === "Control" ||
-        e.key === "Alt" ||
-        e.key === "Meta"
-      ) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      document.removeEventListener("keydown", handler, true);
-      resolve(!e.ctrlKey && e.key.toLowerCase() === "y");
-    };
-    // Capture phase so we beat the existing #stdin listener and the
-    // input element doesn't end up with the keystroke either.
-    document.addEventListener("keydown", handler, true);
+    pendingLineResolver = resolve;
+    startInput(s);
   });
 }
 
@@ -1132,8 +1122,9 @@ async function executeCommand(raw) {
         await s.line("");
         s.append("Boot the VM? ", "dim");
         s.append("[y/N] ");
-        const confirmed = await awaitConfirm();
-        s.append(confirmed ? "y\n" : "n\n", "user-input");
+        const raw = await awaitLine(s);
+        const ans = raw.trim().toLowerCase();
+        const confirmed = ans === "y" || ans === "yes";
         if (!confirmed) {
           await s.streamLine("cancelled.", { className: "dim" });
           await s.line("");
@@ -1203,6 +1194,44 @@ function setupStdin() {
     if (vmActive) return;
     const key = e.key.toLowerCase();
     const plainCtrl = e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey;
+
+    // While an in-command prompt (`awaitLine`) is waiting, Enter
+    // submits the answer and Ctrl+C cancels. Other shortcuts that
+    // would normally run a side-effect (Ctrl+L clear, ArrowUp/Down
+    // history) are suppressed so they don't interrupt the prompt.
+    if (pendingLineResolver) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const raw = stdin.value;
+        stdin.value = "";
+        const resolver = pendingLineResolver;
+        pendingLineResolver = null;
+        endInput();
+        if (activeScreen) activeScreen.append("\n");
+        resolver(raw);
+        return;
+      }
+      if (plainCtrl && key === "c") {
+        e.preventDefault();
+        const resolver = pendingLineResolver;
+        pendingLineResolver = null;
+        endInput();
+        if (activeScreen) activeScreen.append("^C\n", "err");
+        stdin.value = "";
+        resolver("");
+        return;
+      }
+      if (
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown" ||
+        (plainCtrl && key === "l")
+      ) {
+        e.preventDefault();
+        return;
+      }
+      // Plain typing falls through to the input event listener.
+      return;
+    }
 
     // Ctrl+L — clear screen. Aborts any in-flight command first.
     if (plainCtrl && key === "l") {
@@ -1287,6 +1316,14 @@ function setupStdin() {
       e.preventDefault();
       const raw = stdin.value;
       stdin.value = "";
+      if (pendingLineResolver) {
+        const resolver = pendingLineResolver;
+        pendingLineResolver = null;
+        endInput();
+        if (activeScreen) activeScreen.append("\n");
+        resolver(raw);
+        return;
+      }
       executeCommand(raw);
     }
   });
