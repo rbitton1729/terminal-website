@@ -1,4 +1,8 @@
-:root {
+/* Default = gruvbox-dark. Other themes are scoped to a [data-theme="..."]
+   selector and override the same variables. The :root block also serves
+   as the fallback if data-theme is missing for any reason. */
+:root,
+[data-theme="gruvbox-dark"] {
   --bg: #1d2021;
   --fg: #ebdbb2;
   --dim: #a89984;
@@ -9,6 +13,84 @@
   --blue: #83a598;
   --purple: #d3869b;
   --aqua: #8ec07c;
+}
+
+[data-theme="gruvbox-light"] {
+  --bg: #fbf1c7;
+  --fg: #3c3836;
+  --dim: #7c6f64;
+  --muted: #a89984;
+  --accent: #79740e;
+  --warn: #b57614;
+  --err: #9d0006;
+  --blue: #076678;
+  --purple: #8f3f71;
+  --aqua: #427b58;
+}
+
+[data-theme="solarized-dark"] {
+  --bg: #002b36;
+  --fg: #93a1a1;
+  --dim: #839496;
+  --muted: #586e75;
+  --accent: #859900;
+  --warn: #b58900;
+  --err: #dc322f;
+  --blue: #268bd2;
+  --purple: #6c71c4;
+  --aqua: #2aa198;
+}
+
+[data-theme="solarized-light"] {
+  --bg: #fdf6e3;
+  --fg: #586e75;
+  --dim: #657b83;
+  --muted: #93a1a1;
+  --accent: #859900;
+  --warn: #b58900;
+  --err: #dc322f;
+  --blue: #268bd2;
+  --purple: #6c71c4;
+  --aqua: #2aa198;
+}
+
+[data-theme="nord"] {
+  --bg: #2e3440;
+  --fg: #d8dee9;
+  --dim: #a3a8b3;
+  --muted: #4c566a;
+  --accent: #a3be8c;
+  --warn: #ebcb8b;
+  --err: #bf616a;
+  --blue: #81a1c1;
+  --purple: #b48ead;
+  --aqua: #8fbcbb;
+}
+
+[data-theme="dracula"] {
+  --bg: #282a36;
+  --fg: #f8f8f2;
+  --dim: #b8b8b8;
+  --muted: #6272a4;
+  --accent: #50fa7b;
+  --warn: #f1fa8c;
+  --err: #ff5555;
+  --blue: #8be9fd;
+  --purple: #bd93f9;
+  --aqua: #ff79c6;
+}
+
+[data-theme="tokyo-night"] {
+  --bg: #1a1b26;
+  --fg: #c0caf5;
+  --dim: #a9b1d6;
+  --muted: #565f89;
+  --accent: #9ece6a;
+  --warn: #e0af68;
+  --err: #f7768e;
+  --blue: #7aa2f7;
+  --purple: #bb9af7;
+  --aqua: #7dcfff;
 }
 
 * {

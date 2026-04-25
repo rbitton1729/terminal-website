@@ -46,11 +46,22 @@ const HELP_ITEMS = [
   ["gitlab",       "my self-hosted git"],
   ["github",       "profile on GitHub"],
   ["flights",      "see my flight map"],
+  ["source",       "this site's source code"],
   ["theme <name>", "switch color scheme"],
 ];
 const OUTPUT_COMMANDS = [
   "whoami", "projects", "now", "meditations", "cv", "mail",
-  "gitlab", "github", "flights",
+  "gitlab", "github", "flights", "source",
+];
+
+const THEMES = [
+  "gruvbox-dark",
+  "gruvbox-light",
+  "solarized-dark",
+  "solarized-light",
+  "nord",
+  "dracula",
+  "tokyo-night",
 ];
 
 // -- Fortune pool ----------------------------------------------------
@@ -771,6 +782,20 @@ const OUTPUTS = {
     s.append("  (see my flight map)\n", "dim");
     await s.line("", { gap: 40 });
   },
+  source: async (s) => {
+    window.open(
+      "https://git.skylantix.com/rbitton/new-website",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    s.append("-> ", "dim");
+    s.emitLink(
+      "git.skylantix.com/rbitton/new-website",
+      "https://git.skylantix.com/rbitton/new-website",
+    );
+    s.append("\n");
+    await s.line("", { gap: 40 });
+  },
 };
 
 // -- REPL ------------------------------------------------------------
@@ -921,11 +946,33 @@ async function executeCommand(raw) {
         { className: "err" },
       );
       await s.line("");
-    } else if (lower.startsWith("theme")) {
-      await s.streamLine("theme: not wired up in this prototype.", {
-        className: "dim",
-      });
-      await s.line("");
+    } else if (lower === "theme" || lower.startsWith("theme ")) {
+      const arg = cmd.slice("theme".length).trim().toLowerCase();
+      const current = document.documentElement.dataset.theme || THEMES[0];
+      if (!arg) {
+        await s.streamLine("available themes:", { className: "dim" });
+        await s.line("");
+        for (const name of THEMES) {
+          const marker = name === current ? "  *" : "";
+          await s.streamLine(`  ${name}${marker}`);
+        }
+        await s.line("");
+        await s.streamLine(`(usage: theme <name>)`, { className: "dim" });
+        await s.line("");
+      } else if (THEMES.includes(arg)) {
+        document.documentElement.dataset.theme = arg;
+        try {
+          localStorage.setItem("theme", arg);
+        } catch {}
+        await s.streamLine(`theme: ${arg}`, { className: "dim" });
+        await s.line("");
+      } else {
+        await s.streamLine(
+          `theme: '${arg}' not found. Try \`theme\` for the list.`,
+          { className: "err" },
+        );
+        await s.line("");
+      }
     } else {
       await s.streamLine(`command not found: ${cmd}. Try 'help'.`, {
         className: "err",
