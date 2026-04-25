@@ -223,7 +223,7 @@ function makeScreen(preEl) {
       // perfectly even cadence. Skip on the last char so we don't
       // dwell after the word is finished.
       if (hesitate && i < text.length - 1 && Math.random() < 0.12) {
-        await sleep(jitter(180, 380));
+        await sleep(jitter(120, 260));
       }
     }
   }
@@ -231,7 +231,7 @@ function makeScreen(preEl) {
   // Command-output line. Real TTYs print whole lines, not characters,
   // so this is just `line()` with a slightly snappier default gap to
   // give REPL output its own cadence vs. dmesg-style boot logs.
-  async function streamLine(text, { className, gap = 40 } = {}) {
+  async function streamLine(text, { className, gap = 50 } = {}) {
     append(text + "\n", className);
     await sleep(gap);
   }
@@ -291,7 +291,7 @@ function makeScreen(preEl) {
     row.appendChild(document.createTextNode("\n"));
     cursor.before(row);
     keepBottomVisible();
-    await sleep(16);
+    await sleep(4);
   }
 
   // Wipe the pane in place and re-seat the cursor. Used during boot to
@@ -479,7 +479,7 @@ async function runBoot(s) {
 
   // Login
   await line("");
-  await line(`Arch Linux ${kernelTag} (tty1)`, { gap: 220 });
+  await line(`Arch Linux ${kernelTag} (tty1)`, { gap: 80 });
   await line("");
 
   append("rbitton.com login: ");
@@ -487,7 +487,7 @@ async function runBoot(s) {
   // visitor reads the banner, then the prompt, then someone "decides"
   // to log in.
   await sleep(1200);
-  await typeOut("guest", { className: "user-input", minMs: 90, maxMs: 200 });
+  await typeOut("guest", { className: "user-input", minMs: 50, maxMs: 120 });
   await sleep(200);
   await line("");
 
@@ -501,8 +501,8 @@ async function runBoot(s) {
   // speed they type their name, just without the looking-down-at-keys.
   await typeOut("****************", {
     className: "user-input",
-    minMs: 90,
-    maxMs: 200,
+    minMs: 50,
+    maxMs: 120,
   });
   await sleep(180);
   await line("");
@@ -523,7 +523,7 @@ async function runBoot(s) {
   // login, prompt-thinking).
   await line("Welcome to my home on the internet.", {
     className: "motd",
-    gap: 16,
+    gap: 4,
   });
   await line("", { gap: 16 });
 
@@ -535,7 +535,7 @@ async function runBoot(s) {
     "|_| \\_\\__,_| .__/|_| |_|\\__,_|\\___|_| |____/|_|\\__|\\__\\___/|_| |_|",
     "           |_|                                                    ",
   ];
-  for (const ln of banner) await line(ln, { gap: 16, className: "motd" });
+  for (const ln of banner) await line(ln, { gap: 4, className: "motd" });
   await line("", { gap: 16 });
   await line(
     "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.",
@@ -543,11 +543,11 @@ async function runBoot(s) {
   );
   await line("    Founder & Lead Systems Engineer · Skylantix.", {
     className: "dim",
-    gap: 16,
+    gap: 4,
   });
   await line("    Lead Systems Architect · addictd.ai.", {
     className: "dim",
-    gap: 16,
+    gap: 4,
   });
   await line("", { gap: 16 });
   const fortune = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
@@ -556,7 +556,7 @@ async function runBoot(s) {
   }
   await line("                                        — " + fortune.author, {
     className: "fortune",
-    gap: 16,
+    gap: 4,
   });
   await line("", { gap: 16 });
 
@@ -566,9 +566,12 @@ async function runBoot(s) {
   emitPrompt();
   await sleep(900);
 
-  await typeOut("help", { className: "user-input", minMs: 50, maxMs: 100 });
-  await sleep(120);
-  await line("", { gap: 18 });
+  await typeOut("help", { className: "user-input", minMs: 30, maxMs: 70 });
+  // Beat after Enter — long enough to feel deliberate (the shell is
+  // "looking up" the command), short enough that the help reveal
+  // doesn't drag.
+  await sleep(80);
+  await line("", { gap: 10 });
 
   await printHelp(s);
 
@@ -583,18 +586,18 @@ async function printHelp(s) {
   const { line, emitHelpLine } = s;
   await line("To run a command, type the name on the left and press Enter:", {
     className: "dim",
-    gap: 22,
+    gap: 4,
   });
-  await line("", { gap: 18 });
+  await line("", { gap: 4 });
   for (const [cmd, desc] of HELP_ITEMS) {
     await emitHelpLine(cmd, desc);
   }
-  await line("", { gap: 18 });
+  await line("", { gap: 4 });
   await line("(new here? try `whoami` — type it, then press Enter.)", {
     className: "dim",
-    gap: 22,
+    gap: 4,
   });
-  await line("", { gap: 18 });
+  await line("", { gap: 4 });
 }
 
 // -- Command outputs (content only; streamed inline in the REPL) ----
@@ -817,6 +820,40 @@ async function executeCommand(raw) {
       // no-op
     } else if (lower === "help") {
       await printHelp(s);
+    } else if (lower === "reboot") {
+      // Real-terminal feel: blank the pane and run the entire boot
+      // sequence again from POST. We deliberately don't await the
+      // boot here — re-attaching input is the boot's responsibility,
+      // mirroring how it's set up at module load.
+      const pre = s.cursor.parentElement;
+      endInput();
+      pre.replaceChildren();
+      if (pre.parentElement) pre.parentElement.scrollTop = 0;
+      const newS = makeScreen(pre);
+      // Hand activeScreen off so the trailing prompt-emit check at
+      // the bottom of executeCommand skips this old screen.
+      activeScreen = newS;
+      runBoot(newS)
+        .catch((err) =>
+          newS.append(`\n[boot] ${err.message}\n`, "err"),
+        )
+        .finally(() => startInput(newS));
+      return;
+    } else if (lower === "exit" || lower === "logout") {
+      await s.streamLine("logout");
+      await s.line("");
+      endInput();
+      await sleep(150);
+      window.close();
+      // window.close() is a no-op for tabs the user opened directly,
+      // which is most of them. Leave an SSH-style close line so the
+      // visitor isn't staring at a frozen prompt wondering what's up.
+      await s.streamLine("Connection to rbitton.com closed.", {
+        className: "dim",
+      });
+      await s.line("");
+      activeScreen = null;
+      return;
     } else if (OUTPUT_COMMANDS.includes(lower)) {
       const output = OUTPUTS[lower];
       if (!output) {
