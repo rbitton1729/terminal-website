@@ -47,6 +47,7 @@ const HELP_ITEMS = [
   ["github",       "profile on GitHub"],
   ["flights",      "see my flight map"],
   ["source",       "this site's source code"],
+  ["boot tinycore","drop into a real Linux VM (browser-only)"],
   ["theme <name>", "switch color scheme"],
 ];
 const OUTPUT_COMMANDS = [
@@ -798,6 +799,151 @@ const OUTPUTS = {
   },
 };
 
+// One-keystroke Y/N confirmation. Ignores pure modifier presses; any
+// non-`y` key (including N, Enter, Esc) is treated as cancel.
+function awaitConfirm() {
+  return new Promise((resolve) => {
+    const handler = (e) => {
+      if (
+        e.key === "Shift" ||
+        e.key === "Control" ||
+        e.key === "Alt" ||
+        e.key === "Meta"
+      ) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      document.removeEventListener("keydown", handler, true);
+      resolve(!e.ctrlKey && e.key.toLowerCase() === "y");
+    };
+    // Capture phase so we beat the existing #stdin listener and the
+    // input element doesn't end up with the keystroke either.
+    document.addEventListener("keydown", handler, true);
+  });
+}
+
+// -- VM mode (v86 + TinyCore) ---------------------------------------
+// When the user runs `boot tinycore`, we lazy-load v86, hide the
+// terminal pane, and hand the keyboard to the emulator. Ctrl+Alt+Q
+// shuts the VM down and restores the terminal to its idle prompt.
+let vmActive = false;
+let vmEmulator = null;
+let vmKeyHandler = null;
+let v86Loaded = null;
+
+function loadV86Once() {
+  if (v86Loaded) return v86Loaded;
+  v86Loaded = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "v86/libv86.js";
+    script.onload = () => resolve();
+    script.onerror = () =>
+      reject(new Error("failed to load v86 (network or missing file?)"));
+    document.head.appendChild(script);
+  });
+  return v86Loaded;
+}
+
+function buildVmScreenChildren(vmScreen) {
+  vmScreen.replaceChildren();
+  const text = document.createElement("div");
+  text.className = "vm-text";
+  text.style.whiteSpace = "pre";
+  text.style.fontFamily = "inherit";
+  const canvas = document.createElement("canvas");
+  canvas.className = "vm-canvas";
+  vmScreen.appendChild(text);
+  vmScreen.appendChild(canvas);
+}
+
+async function launchTinyCore(s) {
+  await s.streamLine("loading TinyCore Linux...", { className: "dim" });
+  await s.line("");
+
+  try {
+    await loadV86Once();
+  } catch (err) {
+    await s.streamLine(err.message, { className: "err" });
+    await s.line("");
+    if (activeScreen === s) {
+      s.emitPrompt();
+      startInput(s);
+    }
+    return;
+  }
+
+  endInput();
+  vmActive = true;
+
+  const stdinEl = document.getElementById("stdin");
+  if (stdinEl) stdinEl.blur();
+
+  const screenPre = document.getElementById("screen");
+  if (screenPre) screenPre.style.display = "none";
+
+  const vmEl = document.getElementById("vm");
+  vmEl.hidden = false;
+
+  // Boot from CD via El Torito. The ISO has no MBR signature so it
+  // can't be mounted as hda. Boot order 0x123 = CD, FDD, HDD.
+  // Memory must be generous (256MB) so TinyCore's /init can extract
+  // core.gz onto tmpfs — undersizing this is what causes the
+  // misleading "can't find init" message.
+  vmEmulator = new V86({
+    wasm_path: "v86/v86.wasm",
+    memory_size: 256 * 1024 * 1024,
+    vga_memory_size: 8 * 1024 * 1024,
+    bios: { url: "v86/seabios.bin" },
+    vga_bios: { url: "v86/vgabios.bin" },
+    cdrom: {
+      url: "tiny.iso",
+      size: 20459520,
+      async: false,
+    },
+    boot_order: 0x123,
+    screen_container: document.getElementById("vm-screen"),
+    autostart: true,
+  });
+
+  vmKeyHandler = (e) => {
+    if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "q") {
+      e.preventDefault();
+      e.stopPropagation();
+      shutdownVM(s);
+    }
+  };
+  // Capture phase so we beat v86's own keyboard listener.
+  document.addEventListener("keydown", vmKeyHandler, true);
+}
+
+function shutdownVM(s) {
+  if (vmEmulator) {
+    try {
+      vmEmulator.destroy();
+    } catch {}
+    vmEmulator = null;
+  }
+  if (vmKeyHandler) {
+    document.removeEventListener("keydown", vmKeyHandler, true);
+    vmKeyHandler = null;
+  }
+  vmActive = false;
+
+  const vmEl = document.getElementById("vm");
+  vmEl.hidden = true;
+  // Reset the v86 screen children so the next launch starts clean.
+  const vmScreen = document.getElementById("vm-screen");
+  if (vmScreen) buildVmScreenChildren(vmScreen);
+  const screenPre = document.getElementById("screen");
+  if (screenPre) screenPre.style.display = "";
+
+  s.append("\n");
+  s.append("[VM shut down]\n", "dim");
+  s.emitPrompt();
+  startInput(s);
+}
+
 // -- REPL ------------------------------------------------------------
 let activeScreen = null;
 let inputSpan = null;
@@ -952,6 +1098,50 @@ async function executeCommand(raw) {
         "_blank",
         "noopener,noreferrer",
       );
+    } else if (lower === "boot" || lower.startsWith("boot ")) {
+      const arg = cmd.slice("boot".length).trim().toLowerCase();
+      if (arg !== "" && arg !== "tinycore") {
+        await s.streamLine(`boot: unknown target '${arg}'`, {
+          className: "err",
+        });
+        await s.streamLine("usage: boot tinycore", { className: "dim" });
+        await s.line("");
+      } else if (window.matchMedia("(pointer: coarse)").matches) {
+        await s.streamLine(
+          "boot: TinyCore VM needs a hardware keyboard — desktop only.",
+          { className: "err" },
+        );
+        await s.line("");
+      } else {
+        await s.streamLine(
+          "This will boot TinyCore Linux — a real Linux kernel —",
+          { className: "dim" },
+        );
+        await s.streamLine(
+          "inside this browser tab using the v86 x86 emulator.",
+          { className: "dim" },
+        );
+        await s.streamLine(
+          "It downloads ~20 MB and runs entirely client-side; no",
+          { className: "dim" },
+        );
+        await s.streamLine(
+          "data leaves your machine. Ctrl+Alt+Q exits the VM.",
+          { className: "dim" },
+        );
+        await s.line("");
+        s.append("Boot the VM? ", "dim");
+        s.append("[y/N] ");
+        const confirmed = await awaitConfirm();
+        s.append(confirmed ? "y\n" : "n\n", "user-input");
+        if (!confirmed) {
+          await s.streamLine("cancelled.", { className: "dim" });
+          await s.line("");
+        } else {
+          await launchTinyCore(s);
+          return;
+        }
+      }
     } else if (lower === "theme" || lower.startsWith("theme ")) {
       const arg = cmd.slice("theme".length).trim().toLowerCase();
       const current = document.documentElement.dataset.theme || THEMES[0];
@@ -1009,6 +1199,8 @@ function setupStdin() {
   if (!stdin) return;
 
   stdin.addEventListener("keydown", (e) => {
+    // VM owns the keyboard while active.
+    if (vmActive) return;
     const key = e.key.toLowerCase();
     const plainCtrl = e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey;
 
@@ -1118,6 +1310,8 @@ function setupStdin() {
   // handles the mobile-keyboard-open case, and re-pinning on every
   // click would fight the user when they scroll up to re-read.
   document.addEventListener("click", () => {
+    // While the VM is active, leave focus alone so v86 can capture keys.
+    if (vmActive) return;
     if (window.getSelection && window.getSelection().toString()) return;
     stdin.focus();
   });

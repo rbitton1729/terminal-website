@@ -124,6 +124,9 @@ main {
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
+  /* VM overlay (#vm) absolutely positions itself within main, so we
+     need a positioning context here. */
+  position: relative;
   /* Disable the browser's automatic scroll-anchoring so new content
      at the bottom of the pane actually triggers our auto-scroll. */
   overflow-anchor: none;
@@ -220,4 +223,60 @@ main::-webkit-scrollbar {
   main {
     padding: 1rem 1rem 2rem;
   }
+}
+
+/* VM mode (v86 + TinyCore) — sits inside #terminal, swaps in for the
+   <pre> screen when active. v86 paints into either .vm-text (text
+   mode) or .vm-canvas (graphics mode); we let it pick. */
+#vm {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+#vm[hidden] {
+  display: none;
+}
+#vm .vm-banner {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85em;
+  color: var(--dim);
+  background: color-mix(in srgb, var(--bg) 80%, var(--fg) 20%);
+  border-bottom: 1px solid var(--muted);
+}
+#vm .vm-banner kbd {
+  font-family: inherit;
+  color: var(--accent);
+  background: transparent;
+  padding: 0 0.2em;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+#vm-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#vm-screen .vm-text {
+  color: var(--fg);
+  font-family: inherit;
+  /* The VM is its own "monitor" — scale up so the 80x25 text grid
+     fills the pane instead of looking like a small inset. clamp()
+     keeps it readable on small screens and not cartoonish on large. */
+  font-size: clamp(14px, 1.7vw, 22px);
+  line-height: 1.25;
+  margin: 0;
+}
+#vm-screen .vm-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  background: #000;
 }
