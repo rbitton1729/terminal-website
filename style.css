@@ -281,3 +281,11 @@ main::-webkit-scrollbar {
   max-height: 100%;
   background: #000;
 }
+
+.bold { font-weight: bold; }
+.italic { font-style: italic; }
+.code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0 0.25em;
+  border-radius: 2px;
+}
