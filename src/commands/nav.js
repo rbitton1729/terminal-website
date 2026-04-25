@@ -126,9 +126,78 @@ async function catCmd(s, raw) {
   await s.line("");
 }
 
+async function treeCmd(s, raw) {
+  const args = raw.trim().split(/\s+/).slice(1);
+  let showHidden = false;
+  let path = null;
+  for (const a of args) {
+    if (a === "-a") showHidden = true;
+    else if (a.startsWith("-")) {
+      await s.streamLine(`tree: invalid option -- '${a.slice(1)}'`, { className: "err" });
+      await s.line("");
+      return;
+    } else if (path === null) {
+      path = a;
+    }
+  }
+
+  const rel = path === null ? getCwd() : resolveInHome(path);
+  const display = path || ".";
+
+  if (rel === null) {
+    await s.streamLine(`${display}  [error opening dir]`, { className: "err" });
+    await s.line("");
+    return;
+  }
+
+  if (!dirExists(rel)) {
+    if (fileExists(rel)) {
+      await s.streamLine(display);
+      await s.line("");
+      await s.streamLine("0 directories, 1 file", { className: "dim" });
+      await s.line("");
+      return;
+    }
+    await s.streamLine(`${display}  [error opening dir]`, { className: "err" });
+    await s.line("");
+    return;
+  }
+
+  await s.streamLine(display, { className: "prompt-path" });
+
+  let dirCount = 0;
+  let fileCount = 0;
+
+  async function walk(dirRel, prefix) {
+    const entries = listDir(dirRel, { showHidden }) || [];
+    for (let i = 0; i < entries.length; i++) {
+      const name = entries[i];
+      const childRel = dirRel === "" ? name : dirRel + "/" + name;
+      const last = i === entries.length - 1;
+      const branch = last ? "└── " : "├── ";
+      if (dirExists(childRel)) {
+        dirCount++;
+        await s.streamLine(prefix + branch + name, { className: "prompt-path" });
+        await walk(childRel, prefix + (last ? "    " : "│   "));
+      } else {
+        fileCount++;
+        await s.streamLine(prefix + branch + name);
+      }
+    }
+  }
+
+  await walk(rel, "");
+  await s.line("");
+  const dWord = dirCount === 1 ? "directory" : "directories";
+  const fWord = fileCount === 1 ? "file" : "files";
+  await s.streamLine(`${dirCount} ${dWord}, ${fileCount} ${fWord}`, { className: "dim" });
+  await s.line("");
+}
+
 export function registerNav() {
-  register("pwd", pwdCmd, "unix");
-  register("ls",  lsCmd,  "unix");
-  register("cd",  cdCmd,  "unix");
-  register("cat", catCmd, "unix");
+  register("pwd",  pwdCmd,  "unix");
+  register("ls",   lsCmd,   "unix");
+  register("cd",   cdCmd,   "unix");
+  register("cat",  catCmd,  "unix");
+  register("tree", treeCmd, "unix");
 }
