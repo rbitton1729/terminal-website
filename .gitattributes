@@ -1,4 +1,0 @@
-*.js linguist-language=JavaScript
-*.js linguist-detectable=true
-*.js linguist-vendored=false
-*.js linguist-generated=false
