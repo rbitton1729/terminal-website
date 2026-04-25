@@ -940,12 +940,18 @@ async function executeCommand(raw) {
         { className: "fortune" },
       );
       await s.line("");
-    } else if (lower.startsWith("sudo")) {
+    } else if (lower === "sudo" || lower.startsWith("sudo ")) {
       await s.streamLine(
         "Permission denied. This incident will be reported.",
         { className: "err" },
       );
       await s.line("");
+      // never gonna give you up
+      window.open(
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ&autoplay=1",
+        "_blank",
+        "noopener,noreferrer",
+      );
     } else if (lower === "theme" || lower.startsWith("theme ")) {
       const arg = cmd.slice("theme".length).trim().toLowerCase();
       const current = document.documentElement.dataset.theme || THEMES[0];
