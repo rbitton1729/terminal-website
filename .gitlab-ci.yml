@@ -18,7 +18,7 @@ site_build:
   stage: build
   image: node:alpine
   script:
-    - node -c prototype/boot-sequence/boot.js
+    - node -c boot.js
   rules:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_COMMIT_TAG

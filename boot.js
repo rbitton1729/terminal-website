@@ -40,7 +40,7 @@ const HELP_ITEMS = [
   ["whoami",       "about me"],
   ["projects",     "what I've built"],
   ["now",          "what I'm up to this season"],
-  ["writing",      "essays and technical pieces"],
+  ["meditations",  "essays and reflections"],
   ["cv",           "long-form résumé"],
   ["mail",         "get in touch"],
   ["gitlab",       "my self-hosted git"],
@@ -49,7 +49,7 @@ const HELP_ITEMS = [
   ["theme <name>", "switch color scheme"],
 ];
 const OUTPUT_COMMANDS = [
-  "whoami", "projects", "now", "writing", "cv", "mail",
+  "whoami", "projects", "now", "meditations", "cv", "mail",
   "gitlab", "github", "flights",
 ];
 
@@ -70,7 +70,6 @@ const FORTUNES = [
     ],
     author: "Antoine de Saint-Exupéry",
   },
-  { lines: ['"A good composer does not imitate; he steals."'], author: "Igor Stravinsky" },
 ];
 
 // -- Async lookups (fired at load, awaited when needed) --------------
@@ -228,10 +227,10 @@ function makeScreen(preEl) {
     }
   }
 
-  // Command-output line. Real TTYs print whole lines, not characters,
-  // so this is just `line()` with a slightly snappier default gap to
-  // give REPL output its own cadence vs. dmesg-style boot logs.
-  async function streamLine(text, { className, gap = 50 } = {}) {
+  // Command-output line. Real TTYs print whole lines fast enough that
+  // a multi-line output reads as "all at once" — same cadence as the
+  // help/MOTD reveal.
+  async function streamLine(text, { className, gap = 4 } = {}) {
     append(text + "\n", className);
     await sleep(gap);
   }
@@ -256,7 +255,7 @@ function makeScreen(preEl) {
     const prompt = document.createElement("span");
     const host = document.createElement("span");
     host.className = "prompt-host";
-    host.textContent = "guest@rbitton";
+    host.textContent = "guest@archlinux";
     const path = document.createElement("span");
     path.className = "prompt-path";
     path.textContent = ":~";
@@ -364,7 +363,7 @@ async function runBoot(s) {
   const kernelTag = `${kernelVer}-rbitton-zfs`;
 
   const kernLines = [
-    ["[    0.000000]", ` Linux version ${kernelTag} (rbitton@thinkpad) #1 SMP`],
+    ["[    0.000000]", ` Linux version ${kernelTag} (rbitton@archlinux) #1 SMP`],
     ["[    0.000001]", ` Command line: BOOT_IMAGE=/vmlinuz root=ZFS=tank/root rw quiet`],
     ["[    0.000312]", " KERNEL supported cpus: AMD"],
     ["[    0.000487]", " BIOS-provided physical RAM map:"],
@@ -444,7 +443,7 @@ async function runBoot(s) {
     ["[    0.053334]", " zed: ZFS Event Daemon online", null, 260],
     ["[    0.054012]", " systemd[1]: systemd 254.3-1-arch running in system mode"],
     ["[    0.054612]", " systemd[1]: Detected architecture x86-64."],
-    ["[    0.055234]", " systemd[1]: Hostname set to <rbitton>."],
+    ["[    0.055234]", " systemd[1]: Hostname set to <archlinux>."],
     ["[    0.055812]", " systemd[1]: Created slice User and Session Slice."],
     ["[    0.056421]", " systemd[1]: Starting systemd-udevd..."],
     ["[    0.057012]", " systemd[1]: Mounted /sys/kernel/debug."],
@@ -482,7 +481,7 @@ async function runBoot(s) {
   await line(`Arch Linux ${kernelTag} (tty1)`, { gap: 80 });
   await line("");
 
-  append("rbitton.com login: ");
+  append("archlinux login: ");
   // Pause before "guest" types — the longer beat of the two; the
   // visitor reads the banner, then the prompt, then someone "decides"
   // to log in.
@@ -574,6 +573,12 @@ async function runBoot(s) {
   await line("", { gap: 10 });
 
   await printHelp(s);
+
+  // The boot "ran" `help` on the user's behalf — seed history with it
+  // so ArrowUp at the first prompt recalls it like any other command.
+  if (commandHistory[commandHistory.length - 1] !== "help") {
+    commandHistory.push("help");
+  }
 
   // Idle prompt — REPL will attach here.
   emitPrompt();
@@ -705,6 +710,18 @@ const OUTPUTS = {
     );
     await line("");
   },
+  meditations: async (s) => {
+    const { line, streamLine } = s;
+    await streamLine("meditations:", { className: "dim" });
+    await line("");
+    await streamLine("  nothing published yet — first essays land soon.");
+    await line("");
+    await streamLine(
+      "(they'll live at rbitton.com/m/<slug> when written.)",
+      { className: "dim" },
+    );
+    await line("");
+  },
   now: async (s) => {
     const { line, streamLine } = s;
     await streamLine("what i'm up to this season:", { className: "dim" });
@@ -760,6 +777,15 @@ const OUTPUTS = {
 let activeScreen = null;
 let inputSpan = null;
 
+// Bash-style command history. `historyIndex === null` means the user
+// is typing fresh; otherwise it points at the entry currently shown
+// in stdin. `historyDraft` preserves whatever was being typed before
+// the user pressed ArrowUp, so ArrowDown past the newest entry can
+// restore it.
+const commandHistory = [];
+let historyIndex = null;
+let historyDraft = "";
+
 function startInput(screen) {
   if (activeScreen && activeScreen !== screen && activeScreen.cursor) {
     activeScreen.cursor.classList.add("idle");
@@ -803,6 +829,14 @@ async function executeCommand(raw) {
 
   const cmd = raw.trim();
   const lower = cmd.toLowerCase();
+
+  // Push into history (HISTCONTROL=ignoredups behavior — skip if it's
+  // the same as the previous entry). Reset the nav cursor either way.
+  if (cmd !== "" && commandHistory[commandHistory.length - 1] !== cmd) {
+    commandHistory.push(cmd);
+  }
+  historyIndex = null;
+  historyDraft = "";
 
   if (lower === "clear") {
     clearScreen();
@@ -869,7 +903,7 @@ async function executeCommand(raw) {
         (await Promise.race([kernelPromise, Promise.resolve(null)])) ||
         "7.0.1";
       await s.streamLine(
-        `Linux rbitton.com ${kv}-rbitton-zfs #1 SMP x86_64 GNU/Linux`,
+        `Linux archlinux ${kv}-rbitton-zfs #1 SMP x86_64 GNU/Linux`,
       );
       await s.line("");
     } else if (lower === "fortune") {
@@ -961,6 +995,39 @@ function setupStdin() {
       const raw = stdin.value;
       stdin.value = "";
       executeCommand(raw);
+      return;
+    }
+
+    // ArrowUp / ArrowDown — bash-style history navigation. Skip when
+    // any modifier is held so the browser's own shortcuts still work.
+    const plain = !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
+    if (plain && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      if (!inputSpan) return;
+      if (commandHistory.length === 0) return;
+      e.preventDefault();
+      if (e.key === "ArrowUp") {
+        if (historyIndex === null) {
+          historyDraft = stdin.value;
+          historyIndex = commandHistory.length - 1;
+        } else if (historyIndex > 0) {
+          historyIndex--;
+        }
+        stdin.value = commandHistory[historyIndex];
+      } else {
+        if (historyIndex === null) return;
+        if (historyIndex < commandHistory.length - 1) {
+          historyIndex++;
+          stdin.value = commandHistory[historyIndex];
+        } else {
+          historyIndex = null;
+          stdin.value = historyDraft;
+        }
+      }
+      inputSpan.textContent = stdin.value;
+      // Move the native input's caret to the end so the next
+      // keystroke appends rather than landing wherever it was.
+      stdin.setSelectionRange(stdin.value.length, stdin.value.length);
+      return;
     }
   });
 

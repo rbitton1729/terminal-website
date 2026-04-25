@@ -1,6 +1,6 @@
 FROM nginx:alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY prototype/boot-sequence/ /usr/share/nginx/html/
+COPY index.html style.css boot.js favicon.png favicon.ico /usr/share/nginx/html/
 
 EXPOSE 80

@@ -1,12 +1,4 @@
-prototype/boot-sequence/boot.js linguist-language=JavaScript
-prototype/boot-sequence/boot.js linguist-detectable=true
-prototype/boot-sequence/boot.js linguist-vendored=false
-prototype/boot-sequence/boot.js linguist-generated=false
-
 *.js linguist-language=JavaScript
 *.js linguist-detectable=true
 *.js linguist-vendored=false
 *.js linguist-generated=false
-
-prototype/** linguist-detectable=true
-prototype/** linguist-vendored=false
