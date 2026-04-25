@@ -8,6 +8,7 @@ import { runBoot } from "./boot.js";
 import { getCommand } from "./commands/index.js";
 import { isVmActive, launchTinyCore } from "./vm.js";
 import { pathLabel } from "./content.js";
+import { completeInput } from "./commands/completion.js";
 
 let activeScreen = null;
 let inputSpan = null;
@@ -21,6 +22,10 @@ export function getActiveScreen() { return activeScreen; }
 export const commandHistory = [];
 let historyIndex = null;
 let historyDraft = "";
+
+// Tracks two-Tab behavior: a multi-match first Tab does nothing visible;
+// the second consecutive Tab prints the matches.
+let lastKeyWasTab = false;
 
 export function startInput(screen) {
   if (activeScreen && activeScreen !== screen && activeScreen.cursor) {
@@ -230,6 +235,40 @@ export function setupStdin() {
       }
       return;
     }
+
+    // Tab — completion. Mobile soft keyboards don't expose Tab, so this
+    // is implicitly desktop-only (no special gating needed).
+    if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+      if (!inputSpan) return;
+      e.preventDefault();
+      const result = completeInput(stdin.value);
+      if (result.kind === "single") {
+        stdin.value = result.replacement;
+        inputSpan.textContent = result.replacement;
+        stdin.setSelectionRange(result.replacement.length, result.replacement.length);
+        lastKeyWasTab = false;
+      } else if (result.kind === "multi") {
+        // First Tab: silent. Second consecutive Tab: print matches and
+        // re-emit the prompt with the user's input still in stdin.
+        if (lastKeyWasTab) {
+          const sc = activeScreen;
+          const current = stdin.value;
+          endInput();
+          sc.append("\n");
+          for (const m of result.matches) sc.append("  " + m + "\n");
+          sc.emitPrompt(pathLabel());
+          startInput(sc);
+          stdin.value = current;
+          inputSpan.textContent = current;
+          stdin.setSelectionRange(current.length, current.length);
+        }
+        lastKeyWasTab = true;
+      } else {
+        lastKeyWasTab = false;
+      }
+      return;
+    }
+    if (e.key !== "Tab") lastKeyWasTab = false;
 
     // Ctrl+L — clear screen. Aborts any in-flight command first.
     if (plainCtrl && key === "l") {

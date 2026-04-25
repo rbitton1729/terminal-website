@@ -271,15 +271,9 @@ export async function runBoot(s) {
   });
   await line("", { gap: 16 });
 
-  // First prompt sits for a beat — the visitor reads the banner before
-  // "guest" types `help` to show them around.
-  emitPrompt(pathLabel());
-  await sleep(900);
-
-  await typeOut("help", { className: "user-input", minMs: 30, maxMs: 70 });
-  await sleep(80);
-  await line("", { gap: 10 });
-
+  // Help lives in the MOTD so the visitor sees "type X to run Y" before
+  // any prompt appears — no ambiguity about when the auto-boot ends and
+  // their turn begins.
   await printHelp(s);
 
   // Idle prompt — REPL attaches here.

@@ -2,18 +2,11 @@
 
 import { register } from "./index.js";
 import {
-  resolveInHome, fileExists, dirExists, fetchFile,
+  resolveInHome, fileExists, dirExists, listDir, fetchFile,
   getCwd, setCwd, absCwd,
 } from "../content.js";
 import { renderMarkdown } from "../markdown.js";
 
-// Hardcoded listings keyed by canonical relative dir.
-const LS = {
-  "":            ["cv.md", "about.md", "now.md", "projects", "meditations"],
-  "projects":    ["ongoing.md", "personal.md"],
-  "meditations": [],
-};
-const LS_HIDDEN_HOME = [...LS[""], ".bashrc"];
 const DIR_NAMES = new Set(["projects", "meditations"]);
 
 async function pwdCmd(s) {
@@ -75,8 +68,7 @@ async function lsCmd(s, raw) {
   }
 
   if (dirExists(rel)) {
-    const entries = rel === "" && showHidden ? LS_HIDDEN_HOME : LS[rel];
-    await emitDirListing(s, entries);
+    await emitDirListing(s, listDir(rel, { showHidden }));
     await s.line("");
     return;
   }

@@ -10,11 +10,22 @@ const FILES = {
   "projects/personal.md": "content/home/guest/projects/personal.md",
 };
 
-// Dirs that exist under /home/guest (other than home itself, "").
-const DIRS = new Set(["", "projects", "meditations"]);
+// Entries per dir, keyed by canonical path relative to /home/guest.
+// Single source of truth for `ls` and tab completion.
+const TREE = {
+  "":            ["cv.md", "about.md", "now.md", "projects", "meditations", ".bashrc"],
+  "projects":    ["ongoing.md", "personal.md"],
+  "meditations": [],
+};
 
 export function fileExists(rel) { return Object.prototype.hasOwnProperty.call(FILES, rel); }
-export function dirExists(rel)  { return DIRS.has(rel); }
+export function dirExists(rel)  { return Object.prototype.hasOwnProperty.call(TREE, rel); }
+
+export function listDir(rel, { showHidden = false } = {}) {
+  const entries = TREE[rel];
+  if (!entries) return null;
+  return showHidden ? entries.slice() : entries.filter((n) => !n.startsWith("."));
+}
 
 // Current working directory, as a path relative to /home/guest.
 // "" = home, "projects" = ~/projects, "meditations" = ~/meditations.
