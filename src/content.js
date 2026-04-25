@@ -5,7 +5,6 @@ const FILES = {
   "about.md":             "content/home/guest/about.md",
   "cv.md":                "content/home/guest/cv.md",
   "now.md":               "content/home/guest/now.md",
-  ".bashrc":              "content/home/guest/.bashrc",
   "projects/ongoing.md":  "content/home/guest/projects/ongoing.md",
   "projects/personal.md": "content/home/guest/projects/personal.md",
 };
@@ -13,7 +12,7 @@ const FILES = {
 // Entries per dir, keyed by canonical path relative to /home/guest.
 // Single source of truth for `ls` and tab completion.
 const TREE = {
-  "":            ["cv.md", "about.md", "now.md", "projects", "meditations", ".bashrc"],
+  "":            ["cv.md", "about.md", "now.md", "projects", "meditations"],
   "projects":    ["ongoing.md", "personal.md"],
   "meditations": [],
 };

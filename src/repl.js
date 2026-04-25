@@ -4,7 +4,7 @@ import {
   sleep, makeScreen,
   setAbortSignal, setActiveAbortController, getActiveAbortController,
 } from "./screen.js";
-import { runBoot } from "./boot.js";
+import { runBoot, getBootController } from "./boot.js";
 import { getCommand } from "./commands/index.js";
 import { isVmActive, launchTinyCore } from "./vm.js";
 import { pathLabel } from "./content.js";
@@ -170,7 +170,7 @@ async function executeCommand(raw) {
       if (entry) {
         await entry.handler(s, cmd);
       } else {
-        await s.streamLine(`command not found: ${cmd}. Try 'help'.`, {
+        await s.streamLine(`bash: ${first}: command not found`, {
           className: "err",
         });
         await s.line("");
@@ -200,6 +200,18 @@ export function setupStdin() {
   stdin.addEventListener("keydown", (e) => {
     // VM owns the keyboard while active.
     if (isVmActive()) return;
+
+    // Escape during boot → skip the animation. After boot, getBootController
+    // returns null so this falls through.
+    if (e.key === "Escape") {
+      const bc = getBootController();
+      if (bc) {
+        e.preventDefault();
+        bc.abort();
+        return;
+      }
+    }
+
     const key = e.key.toLowerCase();
     const plainCtrl = e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey;
 

@@ -1,7 +1,53 @@
 "use strict";
 
-import { sleep, jitter } from "./screen.js";
+import { sleep, jitter, setAbortSignal } from "./screen.js";
 import { pathLabel } from "./content.js";
+
+// While boot is running, this controller is set so Escape (handled in
+// repl.js) can abort the in-flight sleeps and skip ahead to the prompt.
+let bootController = null;
+export function getBootController() { return bootController; }
+
+const BANNER = [
+  " ____             _                _   ____  _ _   _              ",
+  "|  _ \\ __ _ _ __ | |__   __ _  ___| | | __ )(_) |_| |_ ___  _ __  ",
+  "| |_) / _` | '_ \\| '_ \\ / _` |/ _ \\ | |  _ \\| | __| __/ _ \\| '_ \\ ",
+  "|  _ < (_| | |_) | | | | (_| |  __/ | | |_) | | |_| || (_) | | | |",
+  "|_| \\_\\__,_| .__/|_| |_|\\__,_|\\___|_| |____/|_|\\__|\\__\\___/|_| |_|",
+  "           |_|                                                    ",
+];
+
+// Welcome screen: MOTD, banner, fortune, help. Same content for the
+// normal boot flow and the Escape-skipped flow; `instant` collapses
+// all gaps so the skipped render appears in one frame.
+async function renderWelcome(s, fortune, { instant = false } = {}) {
+  const g = (n) => (instant ? 0 : n);
+  const { line } = s;
+
+  await line("Welcome to my home on the internet.", { className: "motd", gap: g(4) });
+  await line("", { gap: g(16) });
+
+  for (const ln of BANNER) await line(ln, { gap: g(4), className: "motd" });
+  await line("", { gap: g(16) });
+
+  await line(
+    "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.",
+    { className: "motd", gap: g(16) },
+  );
+  await line("    Founder & Lead Systems Engineer · Skylantix.", { className: "dim", gap: g(4) });
+  await line("    Lead Systems Architect · addictd.ai.", { className: "dim", gap: g(4) });
+  await line("", { gap: g(16) });
+
+  for (const ln of fortune.lines) {
+    await line("    " + ln, { className: "fortune", gap: g(16) });
+  }
+  await line("                                        — " + fortune.author, {
+    className: "fortune", gap: g(4),
+  });
+  await line("", { gap: g(16) });
+
+  await printHelp(s, { instant });
+}
 
 export const HELP_ITEMS = [
   ["whoami",       "about me"],
@@ -58,7 +104,48 @@ export const kernelPromise = fetch(
   .catch(() => null);
 
 export async function runBoot(s) {
+  // Yield one microtask before installing the abort signal. The `reboot`
+  // command in repl.js fires runBoot from inside executeCommand's
+  // try/finally; without this yield, executeCommand's finally would run
+  // setAbortSignal(null) right after runBoot's synchronous setup,
+  // clobbering the boot's signal and breaking Escape-to-skip on reboot.
+  await null;
+
   const { append, line, burst, typeOut, kernLine, emitPrompt } = s;
+
+  // Pick fortune up front so both the normal and skipped flows show the
+  // same one (in case Escape lands mid-banner).
+  const fortune = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
+
+  // Wire abort: Escape (handled in repl.js) calls bootController.abort(),
+  // which makes every in-flight `sleep` reject with AbortError. We catch
+  // that and jump to the instant render below.
+  const controller = new AbortController();
+  bootController = controller;
+  setAbortSignal(controller.signal);
+
+  try {
+    await runBootAnimation(s, fortune);
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      setAbortSignal(null);
+      bootController = null;
+      throw err;
+    }
+    // Skipped — clear and slam the welcome state to the screen instantly.
+    setAbortSignal(null);
+    s.clear();
+    await renderWelcome(s, fortune, { instant: true });
+  } finally {
+    setAbortSignal(null);
+    bootController = null;
+  }
+
+  emitPrompt(pathLabel());
+}
+
+async function runBootAnimation(s, fortune) {
+  const { append, line, burst, typeOut, kernLine } = s;
 
   // Cold-boot beat — let the page sit black for a moment before BIOS POST,
   // so the boot feels like it's *starting*, not mid-stream.
@@ -242,56 +329,25 @@ export async function runBoot(s) {
 
   await sleep(80);
 
-  await line("Welcome to my home on the internet.", { className: "motd", gap: 4 });
-  await line("", { gap: 16 });
-
-  const banner = [
-    " ____             _                _   ____  _ _   _              ",
-    "|  _ \\ __ _ _ __ | |__   __ _  ___| | | __ )(_) |_| |_ ___  _ __  ",
-    "| |_) / _` | '_ \\| '_ \\ / _` |/ _ \\ | |  _ \\| | __| __/ _ \\| '_ \\ ",
-    "|  _ < (_| | |_) | | | | (_| |  __/ | | |_) | | |_| || (_) | | | |",
-    "|_| \\_\\__,_| .__/|_| |_|\\__,_|\\___|_| |____/|_|\\__|\\__\\___/|_| |_|",
-    "           |_|                                                    ",
-  ];
-  for (const ln of banner) await line(ln, { gap: 4, className: "motd" });
-  await line("", { gap: 16 });
-  await line(
-    "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.",
-    { className: "motd", gap: 16 },
-  );
-  await line("    Founder & Lead Systems Engineer · Skylantix.", { className: "dim", gap: 4 });
-  await line("    Lead Systems Architect · addictd.ai.", { className: "dim", gap: 4 });
-  await line("", { gap: 16 });
-  const fortune = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
-  for (const ln of fortune.lines) {
-    await line("    " + ln, { className: "fortune", gap: 16 });
-  }
-  await line("                                        — " + fortune.author, {
-    className: "fortune", gap: 4,
-  });
-  await line("", { gap: 16 });
-
   // Help lives in the MOTD so the visitor sees "type X to run Y" before
   // any prompt appears — no ambiguity about when the auto-boot ends and
   // their turn begins.
-  await printHelp(s);
-
-  // Idle prompt — REPL attaches here.
-  emitPrompt(pathLabel());
+  await renderWelcome(s, fortune);
 }
 
-export async function printHelp(s) {
+export async function printHelp(s, { instant = false } = {}) {
+  const g = (n) => (instant ? 0 : n);
   const { line, emitHelpLine } = s;
   await line("To run a command, type the name on the left and press Enter:", {
-    className: "dim", gap: 4,
+    className: "dim", gap: g(4),
   });
-  await line("", { gap: 4 });
+  await line("", { gap: g(4) });
   for (const [cmd, desc] of HELP_ITEMS) {
-    await emitHelpLine(cmd, desc);
+    await emitHelpLine(cmd, desc, { gap: g(4) });
   }
-  await line("", { gap: 4 });
+  await line("", { gap: g(4) });
   await line("(new here? try `whoami` — type it, then press Enter.)", {
-    className: "dim", gap: 4,
+    className: "dim", gap: g(4),
   });
-  await line("", { gap: 4 });
+  await line("", { gap: g(4) });
 }

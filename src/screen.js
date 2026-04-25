@@ -137,7 +137,7 @@ export function makeScreen(preEl) {
     keepBottomVisible();
   }
 
-  async function emitHelpLine(cmd, desc) {
+  async function emitHelpLine(cmd, desc, { gap = 4 } = {}) {
     const row = document.createElement("span");
     const cmdSpan = document.createElement("span");
     cmdSpan.className = "prompt-path";
@@ -150,7 +150,7 @@ export function makeScreen(preEl) {
     row.appendChild(document.createTextNode("\n"));
     cursor.before(row);
     keepBottomVisible();
-    await sleep(4);
+    await sleep(gap);
   }
 
   // Wipe the pane in place and re-seat the cursor. Mirrors how a real
