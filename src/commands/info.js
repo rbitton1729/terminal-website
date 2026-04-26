@@ -17,12 +17,11 @@ async function renderRel(s, rel) {
 }
 
 async function whoamiCmd(s) { await renderRel(s, "about.md"); }
-async function cvCmd(s)     { await renderRel(s, "cv.md"); }
-async function nowCmd(s)    { await renderRel(s, "now.md"); }
 
 async function projectsCmd(s) {
   await renderRel(s, "projects/ongoing.md");
   await renderRel(s, "projects/personal.md");
+  await renderRel(s, "projects/past.md");
 }
 
 // meditations/ has no published files yet. When a file lands, add it to
@@ -40,11 +39,25 @@ async function mailCmd(s) {
   await s.line("", { gap: 40 });
 }
 
+async function paperCmd(s) {
+  // Force download via a hidden anchor; otherwise the browser would
+  // navigate to and inline-render the PDF, which is the wrong UX here.
+  const a = document.createElement("a");
+  a.href = "paper.pdf";
+  a.download = "paper.pdf";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  s.append("-> ", "dim");
+  s.emitLink("paper.pdf", "paper.pdf");
+  s.append("  (downloading)\n", "dim");
+  await s.line("", { gap: 40 });
+}
+
 export function registerInfo() {
   register("whoami",      whoamiCmd,      "core");
-  register("cv",          cvCmd,          "core");
-  register("now",         nowCmd,         "core");
   register("projects",    projectsCmd,    "core");
   register("meditations", meditationsCmd, "core");
   register("mail",        mailCmd,        "core");
+  register("paper",       paperCmd,       "core");
 }

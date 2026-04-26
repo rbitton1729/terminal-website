@@ -52,9 +52,8 @@ async function renderWelcome(s, fortune, { instant = false } = {}) {
 export const HELP_ITEMS = [
   ["whoami",       "about me"],
   ["projects",     "what I've built"],
-  ["now",          "what I'm up to this season"],
   ["meditations",  "essays and reflections"],
-  ["cv",           "long-form résumé"],
+  ["paper",        "download my airplane-classifier paper (draft)"],
   ["mail",         "get in touch"],
   ["gitlab",       "my self-hosted git"],
   ["github",       "profile on GitHub"],

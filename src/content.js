@@ -3,17 +3,16 @@
 // Files that exist (canonical paths relative to /home/guest).
 const FILES = {
   "about.md":             "content/home/guest/about.md",
-  "cv.md":                "content/home/guest/cv.md",
-  "now.md":               "content/home/guest/now.md",
   "projects/ongoing.md":  "content/home/guest/projects/ongoing.md",
   "projects/personal.md": "content/home/guest/projects/personal.md",
+  "projects/past.md":     "content/home/guest/projects/past.md",
 };
 
 // Entries per dir, keyed by canonical path relative to /home/guest.
 // Single source of truth for `ls` and tab completion.
 const TREE = {
-  "":            ["cv.md", "about.md", "now.md", "projects", "meditations"],
-  "projects":    ["ongoing.md", "personal.md"],
+  "":            ["about.md", "projects", "meditations"],
+  "projects":    ["ongoing.md", "personal.md", "past.md"],
   "meditations": [],
 };
 
