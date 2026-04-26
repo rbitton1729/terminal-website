@@ -31,7 +31,7 @@ async function renderWelcome(s, fortune, { instant = false } = {}) {
   await line("", { gap: g(16) });
 
   await line(
-    "    Raphael Bitton - student, system orchestrator, occasional composer, explorer.",
+    "    Raphael Bitton: student, system orchestrator, occasional composer, explorer.",
     { className: "motd", gap: g(16) },
   );
   await line("    Founder & Lead Systems Engineer · Skylantix.", { className: "dim", gap: g(4) });
@@ -41,7 +41,7 @@ async function renderWelcome(s, fortune, { instant = false } = {}) {
   for (const ln of fortune.lines) {
     await line("    " + ln, { className: "fortune", gap: g(16) });
   }
-  await line("                                        - " + fortune.author, {
+  await line("                                          " + fortune.author, {
     className: "fortune", gap: g(4),
   });
   await line("", { gap: g(16) });
@@ -346,7 +346,7 @@ export async function printHelp(s, { instant = false } = {}) {
     await emitHelpLine(cmd, desc, { gap: g(4) });
   }
   await line("", { gap: g(4) });
-  await line("(new here? try `whoami` - type it, then press Enter.)", {
+  await line("(new here? try `whoami`, then press Enter.)", {
     className: "dim", gap: g(4),
   });
   await line("", { gap: g(4) });

@@ -68,7 +68,7 @@ export async function runFortune(s) {
   const f = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
   for (const ln of f.lines) await s.streamLine(ln, { className: "fortune" });
   await s.streamLine(
-    `                                        - ${f.author}`,
+    `                                          ${f.author}`,
     { className: "fortune" },
   );
   await s.line("");

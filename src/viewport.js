@@ -2,7 +2,7 @@
 
 // The widest line expected anywhere. If it fits, everything fits.
 const WIDEST_LINE =
-  "    Raphael Bitton - student, system orchestrator, occasional composer, explorer.";
+  "    Raphael Bitton: student, system orchestrator, occasional composer, explorer.";
 
 export function fitFontToViewport() {
   const pre = document.querySelector(".screen");

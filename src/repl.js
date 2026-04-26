@@ -143,7 +143,7 @@ async function executeCommand(raw) {
         );
         await s.line("");
       } else {
-        await s.streamLine("This will boot TinyCore Linux - a real Linux kernel -", { className: "dim" });
+        await s.streamLine("This will boot TinyCore Linux (a real Linux kernel)", { className: "dim" });
         await s.streamLine("inside this browser tab using the v86 x86 emulator.", { className: "dim" });
         await s.streamLine("It downloads ~20 MB and runs entirely client-side; no", { className: "dim" });
         await s.streamLine("data leaves your machine. Ctrl+Alt+Q exits the VM.", { className: "dim" });
