@@ -29,7 +29,7 @@ function completePath(input) {
   const head = input.slice(0, lastSpace + 1); // includes trailing space
   const arg = input.slice(lastSpace + 1);
 
-  // Split on last "/" — the part before is the dir we're listing,
+  // Split on last "/" - the part before is the dir we're listing,
   // the part after is the filename prefix we're matching.
   const slash = arg.lastIndexOf("/");
   const dirPart = slash === -1 ? "" : arg.slice(0, slash + 1);

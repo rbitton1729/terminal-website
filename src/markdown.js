@@ -31,7 +31,7 @@ export async function renderMarkdown(markdown, s) {
       continue;
     }
 
-    // Headings — match h3 first so "### x" doesn't get caught by # or ##.
+    // Headings - match h3 first so "### x" doesn't get caught by # or ##.
     let m;
     if ((m = ln.match(/^### (.*)$/))) {
       await emitInline(m[1], s, "dim");
@@ -107,10 +107,10 @@ async function emitInline(text, s, lineClass) {
     // Link: [text](url)
     m = rest.match(/^\[([^\]]+)\]\(([^)]+)\)/);
     if (m) { emitLink(m[1], m[2]); rest = rest.slice(m[0].length); continue; }
-    // Plain run — consume up to the next special-marker char
+    // Plain run - consume up to the next special-marker char
     m = rest.match(/^([^*`[]+)/);
     if (m) { append(m[0], lineClass); rest = rest.slice(m[0].length); continue; }
-    // Stray special char — emit as plain
+    // Stray special char - emit as plain
     append(rest[0], lineClass);
     rest = rest.slice(1);
   }

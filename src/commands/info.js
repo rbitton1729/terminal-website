@@ -16,7 +16,7 @@ async function renderRel(s, rel) {
   await s.line("");
 }
 
-async function whoamiCmd(s) { await renderRel(s, "about.md"); }
+async function whoamiCmd(s) { await renderRel(s, "README.md"); }
 
 async function projectsCmd(s) {
   await renderRel(s, "projects/ongoing.md");
@@ -40,16 +40,24 @@ async function mailCmd(s) {
 }
 
 async function paperCmd(s) {
-  // Force download via a hidden anchor; otherwise the browser would
-  // navigate to and inline-render the PDF, which is the wrong UX here.
+  await downloadFile(s, "paper.pdf");
+}
+
+async function resumeCmd(s) {
+  await downloadFile(s, "Bitton_Resume.pdf");
+}
+
+// Force download via a hidden anchor; otherwise the browser would navigate
+// to and inline-render the PDF, which is the wrong UX here.
+async function downloadFile(s, filename) {
   const a = document.createElement("a");
-  a.href = "paper.pdf";
-  a.download = "paper.pdf";
+  a.href = filename;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   s.append("-> ", "dim");
-  s.emitLink("paper.pdf", "paper.pdf");
+  s.emitLink(filename, filename);
   s.append("  (downloading)\n", "dim");
   await s.line("", { gap: 40 });
 }
@@ -60,4 +68,5 @@ export function registerInfo() {
   register("meditations", meditationsCmd, "core");
   register("mail",        mailCmd,        "core");
   register("paper",       paperCmd,       "core");
+  register("resume",      resumeCmd,      "core");
 }

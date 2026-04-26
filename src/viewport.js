@@ -2,7 +2,7 @@
 
 // The widest line expected anywhere. If it fits, everything fits.
 const WIDEST_LINE =
-  "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.";
+  "    Raphael Bitton - student, system orchestrator, occasional composer, explorer.";
 
 export function fitFontToViewport() {
   const pre = document.querySelector(".screen");
@@ -35,7 +35,7 @@ export function fitFontToViewport() {
 // Set the pane's height from the *visual* viewport. `dvh` handles this
 // on many browsers but iOS Safari has historically lagged, so we
 // override in JS. When the on-screen keyboard opens, the visual viewport
-// shrinks and so does main — its bottom edge lands right above the keyboard.
+// shrinks and so does main - its bottom edge lands right above the keyboard.
 export function applyViewportHeight() {
   const h = window.visualViewport
     ? window.visualViewport.height

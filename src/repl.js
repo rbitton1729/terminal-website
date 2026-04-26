@@ -79,7 +79,7 @@ async function executeCommand(raw) {
   const cmd = raw.trim();
   const lower = cmd.toLowerCase();
 
-  // HISTCONTROL=ignoredups behavior — skip if same as previous entry.
+  // HISTCONTROL=ignoredups behavior - skip if same as previous entry.
   if (cmd !== "" && commandHistory[commandHistory.length - 1] !== cmd) {
     commandHistory.push(cmd);
   }
@@ -102,7 +102,7 @@ async function executeCommand(raw) {
       // no-op
     } else if (lower === "reboot") {
       // Real-terminal feel: blank the pane and run boot from POST again.
-      // Don't await runBoot here — re-attaching input is its responsibility.
+      // Don't await runBoot here - re-attaching input is its responsibility.
       const pre = s.cursor.parentElement;
       endInput();
       pre.replaceChildren();
@@ -143,7 +143,7 @@ async function executeCommand(raw) {
         );
         await s.line("");
       } else {
-        await s.streamLine("This will boot TinyCore Linux — a real Linux kernel —", { className: "dim" });
+        await s.streamLine("This will boot TinyCore Linux - a real Linux kernel -", { className: "dim" });
         await s.streamLine("inside this browser tab using the v86 x86 emulator.", { className: "dim" });
         await s.streamLine("It downloads ~20 MB and runs entirely client-side; no", { className: "dim" });
         await s.streamLine("data leaves your machine. Ctrl+Alt+Q exits the VM.", { className: "dim" });
@@ -179,7 +179,7 @@ async function executeCommand(raw) {
   } catch (err) {
     if (err.name !== "AbortError") console.error(err);
     // On AbortError the "^C" was printed by the Ctrl+C handler at the
-    // moment of cancellation — nothing to do here.
+    // moment of cancellation - nothing to do here.
   } finally {
     setAbortSignal(null);
     setActiveAbortController(null);
@@ -248,7 +248,7 @@ export function setupStdin() {
       return;
     }
 
-    // Tab — completion. Mobile soft keyboards don't expose Tab, so this
+    // Tab - completion. Mobile soft keyboards don't expose Tab, so this
     // is implicitly desktop-only (no special gating needed).
     if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
       if (!inputSpan) return;
@@ -282,7 +282,7 @@ export function setupStdin() {
     }
     if (e.key !== "Tab") lastKeyWasTab = false;
 
-    // Ctrl+L — clear screen. Aborts any in-flight command first.
+    // Ctrl+L - clear screen. Aborts any in-flight command first.
     if (plainCtrl && key === "l") {
       e.preventDefault();
       const ctl = getActiveAbortController();
@@ -291,7 +291,7 @@ export function setupStdin() {
       return;
     }
 
-    // Ctrl+C — cancel a running command, or discard the current input.
+    // Ctrl+C - cancel a running command, or discard the current input.
     // If the user has a text selection, let the browser copy instead.
     if (plainCtrl && key === "c") {
       if (window.getSelection && window.getSelection().toString()) return;
@@ -323,7 +323,7 @@ export function setupStdin() {
       return;
     }
 
-    // ArrowUp / ArrowDown — bash-style history navigation. Skip when any
+    // ArrowUp / ArrowDown - bash-style history navigation. Skip when any
     // modifier is held so the browser's own shortcuts still work.
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
     if (plain && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
@@ -357,7 +357,7 @@ export function setupStdin() {
   });
 
   // Mobile/virtual keyboards fire `insertLineBreak` via beforeinput for
-  // the on-screen Return key — catch that too.
+  // the on-screen Return key - catch that too.
   stdin.addEventListener("beforeinput", (e) => {
     if (!inputSpan) return;
     if (e.inputType === "insertLineBreak" || e.inputType === "insertParagraph") {
@@ -378,7 +378,7 @@ export function setupStdin() {
 
   // Mirror stdin.value into the visible input span. The hidden <input>
   // handles native character insertion, autocorrect, backspace, IME, and
-  // paste on its own — we just reflect its state. Sidesteps mobile
+  // paste on its own - we just reflect its state. Sidesteps mobile
   // keyboards' cumulative-buffer quirks.
   stdin.addEventListener("input", () => {
     if (!inputSpan) {
@@ -389,7 +389,7 @@ export function setupStdin() {
   });
 
   // Tap/click anywhere: refocus stdin (keeps mobile keyboard up). Don't
-  // re-pin scroll on focus — visualViewport resize handles the
+  // re-pin scroll on focus - visualViewport resize handles the
   // mobile-keyboard-open case, and re-pinning on every click would
   // fight the user when they scroll up to re-read.
   document.addEventListener("click", () => {

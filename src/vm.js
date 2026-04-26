@@ -61,7 +61,7 @@ export async function launchTinyCore(s, onShutdown) {
   // Boot from CD via El Torito. The ISO has no MBR signature so it
   // can't be mounted as hda. Boot order 0x123 = CD, FDD, HDD.
   // Memory must be generous (256MB) so TinyCore's /init can extract
-  // core.gz onto tmpfs — undersizing causes the misleading
+  // core.gz onto tmpfs - undersizing causes the misleading
   // "can't find init" message.
   vmEmulator = new V86({
     wasm_path: "v86/v86.wasm",

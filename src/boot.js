@@ -31,7 +31,7 @@ async function renderWelcome(s, fortune, { instant = false } = {}) {
   await line("", { gap: g(16) });
 
   await line(
-    "    Raphael Bitton — student, system orchestrator, occasional composer, explorer.",
+    "    Raphael Bitton - student, system orchestrator, occasional composer, explorer.",
     { className: "motd", gap: g(16) },
   );
   await line("    Founder & Lead Systems Engineer · Skylantix.", { className: "dim", gap: g(4) });
@@ -41,7 +41,7 @@ async function renderWelcome(s, fortune, { instant = false } = {}) {
   for (const ln of fortune.lines) {
     await line("    " + ln, { className: "fortune", gap: g(16) });
   }
-  await line("                                        — " + fortune.author, {
+  await line("                                        - " + fortune.author, {
     className: "fortune", gap: g(4),
   });
   await line("", { gap: g(16) });
@@ -53,6 +53,7 @@ export const HELP_ITEMS = [
   ["whoami",       "about me"],
   ["projects",     "what I've built"],
   ["meditations",  "essays and reflections"],
+  ["resume",       "download my résumé (last updated Nov 2025)"],
   ["paper",        "download my airplane-classifier paper (draft)"],
   ["mail",         "get in touch"],
   ["gitlab",       "my self-hosted git"],
@@ -131,7 +132,7 @@ export async function runBoot(s) {
       bootController = null;
       throw err;
     }
-    // Skipped — clear and slam the welcome state to the screen instantly.
+    // Skipped - clear and slam the welcome state to the screen instantly.
     setAbortSignal(null);
     s.clear();
     await renderWelcome(s, fortune, { instant: true });
@@ -146,7 +147,7 @@ export async function runBoot(s) {
 async function runBootAnimation(s, fortune) {
   const { append, line, burst, typeOut, kernLine } = s;
 
-  // Cold-boot beat — let the page sit black for a moment before BIOS POST,
+  // Cold-boot beat - let the page sit black for a moment before BIOS POST,
   // so the boot feels like it's *starting*, not mid-stream.
   await sleep(900);
 
@@ -281,7 +282,7 @@ async function runBootAnimation(s, fortune) {
     ["[    0.062234]", " systemd[1]: Reached target Multi-User System."],
     ["[    0.062912]", " systemd[1]: Startup finished in 1.247s."],
   ];
-  // 4th element is an extra dwell (ms) tacked on after the normal jitter —
+  // 4th element is an extra dwell (ms) tacked on after the normal jitter -
   // used at moments where a real kernel actually does work (SMP bring-up,
   // raid6 bench, ZFS pool import, kernel→userspace handoff).
   for (const [ts, rest, special, pause] of kernLines) {
@@ -302,7 +303,7 @@ async function runBootAnimation(s, fortune) {
   await line("");
 
   append("archlinux login: ");
-  // Long beat — the visitor reads the banner, then "decides" to log in.
+  // Long beat - the visitor reads the banner, then "decides" to log in.
   await sleep(1200);
   await typeOut("guest", { className: "user-input", minMs: 50, maxMs: 120 });
   await sleep(200);
@@ -310,7 +311,7 @@ async function runBootAnimation(s, fortune) {
 
   append("Password: ");
   await sleep(450);
-  // 16 chars — current common-sense recommendation for a strong password.
+  // 16 chars - current common-sense recommendation for a strong password.
   await typeOut("****************", {
     className: "user-input", minMs: 50, maxMs: 120,
   });
@@ -329,7 +330,7 @@ async function runBootAnimation(s, fortune) {
   await sleep(80);
 
   // Help lives in the MOTD so the visitor sees "type X to run Y" before
-  // any prompt appears — no ambiguity about when the auto-boot ends and
+  // any prompt appears - no ambiguity about when the auto-boot ends and
   // their turn begins.
   await renderWelcome(s, fortune);
 }
@@ -345,7 +346,7 @@ export async function printHelp(s, { instant = false } = {}) {
     await emitHelpLine(cmd, desc, { gap: g(4) });
   }
   await line("", { gap: g(4) });
-  await line("(new here? try `whoami` — type it, then press Enter.)", {
+  await line("(new here? try `whoami` - type it, then press Enter.)", {
     className: "dim", gap: g(4),
   });
   await line("", { gap: g(4) });

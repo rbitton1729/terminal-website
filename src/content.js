@@ -2,7 +2,7 @@
 
 // Files that exist (canonical paths relative to /home/guest).
 const FILES = {
-  "about.md":             "content/home/guest/about.md",
+  "README.md":            "content/home/guest/README.md",
   "projects/ongoing.md":  "content/home/guest/projects/ongoing.md",
   "projects/personal.md": "content/home/guest/projects/personal.md",
   "projects/past.md":     "content/home/guest/projects/past.md",
@@ -11,7 +11,7 @@ const FILES = {
 // Entries per dir, keyed by canonical path relative to /home/guest.
 // Single source of truth for `ls` and tab completion.
 const TREE = {
-  "":            ["about.md", "projects", "meditations"],
+  "":            ["README.md", "projects", "meditations"],
   "projects":    ["ongoing.md", "personal.md", "past.md"],
   "meditations": [],
 };
@@ -69,10 +69,10 @@ export function resolveInHome(input) {
   else if (p.startsWith("/home/guest/")) p = p.slice("/home/guest/".length);
   else if (p.startsWith("/")) return null;
   else {
-    // Relative — resolve against cwd
+    // Relative - resolve against cwd
     p = cwd === "" ? p : cwd + "/" + p;
   }
-  // Walk segments, collapsing . and .. — reject any walk above home.
+  // Walk segments, collapsing . and .. - reject any walk above home.
   const parts = p.split("/").filter(Boolean);
   const stack = [];
   for (const part of parts) {

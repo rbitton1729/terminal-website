@@ -82,7 +82,7 @@ export function makeScreen(preEl) {
       span.appendChild(document.createTextNode(text[i]));
       keepBottomVisible();
       await sleep(jitter(minMs, maxMs));
-      // Mid-word hesitation — humans don't type at perfectly even cadence.
+      // Mid-word hesitation - humans don't type at perfectly even cadence.
       // Skip on last char so we don't dwell after the word is finished.
       if (hesitate && i < text.length - 1 && Math.random() < 0.12) {
         await sleep(jitter(120, 260));

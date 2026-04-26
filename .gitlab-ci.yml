@@ -11,7 +11,7 @@ workflow:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_COMMIT_TAG
 
-# The site is plain HTML/CSS/JS — no compile step. This job is just a
+# The site is plain HTML/CSS/JS - no compile step. This job is just a
 # smoke-check so a broken JS file fails fast before we bother building
 # a container for it.
 site_build:
